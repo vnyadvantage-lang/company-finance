@@ -49,7 +49,7 @@ body{font-family:'Manrope',-apple-system,sans-serif;background:var(--bg);color:v
 .nbtn:hover{background:var(--bg3);color:var(--text)}
 .nbtn.act{color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(22,24,18,.14)}
 .nb-ov.act{background:#475569}.nb-cf.act{background:var(--green)}.nb-pl.act{background:var(--acc)}
-.nb-mo.act{background:var(--teal)}.nb-al.act{background:var(--indigo)}.nb-st.act{background:var(--pink)}.nb-yp.act{background:var(--amber)}.nb-an.act{background:#0891b2}.nb-set.act{background:#64748b}
+.nb-mo.act{background:var(--teal)}.nb-al.act{background:var(--indigo)}.nb-st.act{background:var(--pink)}.nb-yp.act{background:var(--amber)}.nb-an.act{background:#0891b2}.nb-pc.act{background:#7c3aed}.nb-set.act{background:#64748b}
 .pg{display:none;max-width:1600px;margin:0 auto;padding:1.4rem 1.5rem}
 .pg.act{display:block}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem}
@@ -108,7 +108,13 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(63,12
 .tbl input:focus{border-color:var(--acc);background:#fff;box-shadow:0 0 0 2px rgba(63,122,209,.1)}
 .posv{color:var(--green)!important}.negv{color:var(--red)!important}
 .tbl td.ghi{background:rgba(31,157,107,.16)!important;color:#15795a!important;font-weight:700}
-.tbl td.rhi{background:rgba(224,96,58,.10)!important;color:#b4451f!important}
+.tbl td.ahi{background:rgba(207,133,0,.15)!important;color:#9a6a00!important;font-weight:700}
+.tbl td.rhi{background:rgba(224,96,58,.14)!important;color:#b4451f!important;font-weight:700}
+.pcbar{display:flex;height:20px;border-radius:5px;overflow:hidden;border:1px solid var(--brd)}
+.pcbar>div{height:100%}
+.pclegend{display:flex;gap:11px;flex-wrap:wrap;margin-top:6px;font-size:10.5px;color:var(--text2)}
+.pclegend span.it{display:inline-flex;align-items:center;gap:4px}
+.pclegend i{width:9px;height:9px;border-radius:2px;display:inline-block}
 .deprow td{background:var(--bg3)!important;color:var(--acc2);font-weight:700;font-size:10px;letter-spacing:.5px;text-transform:uppercase}
 .deprow td:first-child{background:var(--bg3)!important;color:var(--acc2)}
 .moverlay{display:none;position:fixed;inset:0;background:rgba(28,29,31,.4);z-index:200;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem}
@@ -122,6 +128,10 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(63,12
 .toast.ok{background:#fff;border-color:rgba(31,157,107,.3);color:var(--green)}
 .toast.err{background:#fff;border-color:rgba(224,96,58,.3);color:var(--red)}
 .toast.show{transform:translateY(0)}
+#tipbox{position:fixed;z-index:1000;max-width:300px;background:#1c1d1f;color:#fff;padding:8px 11px;border-radius:8px;font-size:11.5px;line-height:1.5;box-shadow:0 8px 24px rgba(0,0,0,.3);pointer-events:none;white-space:pre-line;display:none}
+[data-tip]{cursor:help}
+.moinfo{display:flex;align-items:flex-start;gap:8px;background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:9px 13px;font-size:11.5px;color:var(--text2);line-height:1.5;margin-bottom:1.2rem}
+.moinfo b{color:var(--text)}
 .warn{background:rgba(224,96,58,.08);border:1px solid rgba(224,96,58,.25);color:var(--red);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:600;margin-top:8px}
 .okbox{background:rgba(31,157,107,.07);border:1px solid rgba(31,157,107,.22);color:var(--green);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:600;margin-top:8px}
 .sep{border:none;border-top:1px solid var(--brd);margin:.85rem 0}
@@ -168,6 +178,7 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(63,12
   <select class="hsel" id="h-year" title="Год"></select>
   <div class="hchip g">Выручка YTD: <b id="h-rev">—</b></div>
   <div class="hchip" id="h-profit-chip">Прибыль YTD: <b id="h-profit">—</b></div>
+  <div class="hchip" id="h-health" title="Здоровье бизнеса" style="cursor:pointer" onclick="sp('overview',document.querySelector('.nb-ov'))">Здоровье: <b id="h-health-v">—</b></div>
   <div class="sync ok" id="h-sync">● сохранено</div>
   <button class="hbtn" onclick="xprt()">↓ Бэкап</button>
 </div>
@@ -179,18 +190,20 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(63,12
   <button class="nbtn nb-pl" onclick="sp('pnl',this)">📈 P&amp;L</button>
   <button class="nbtn nb-mo" onclick="sp('months',this)">🗓 Месяцы</button>
   <button class="nbtn nb-yp" onclick="sp('yearplan',this)">🎯 План года</button>
+  <button class="nbtn nb-pc" onclick="sp('prices',this)">💲 Цены</button>
   <button class="nbtn nb-an" onclick="sp('analytics',this)">🔎 Аналитика</button>
-  <button class="nbtn nb-al" onclick="sp('alloc',this)">👥 Распределение</button>
-  <button class="nbtn nb-st" onclick="sp('staff',this)">🧑‍💼 Сотрудники</button>
+  <button class="nbtn nb-st" onclick="sp('staff',this)">🧑‍💼 Персонал</button>
   <button class="nbtn nb-set" onclick="sp('settings',this)">⚙ Настройки</button>
 </div></nav>
 
 <div id="pg-overview" class="pg act">
+  <div id="ov-health"></div>
   <div class="g4" id="ov-kpis"></div>
   <div class="g2">
     <div class="card cb"><div class="ctitle"><span class="l"><span class="dot b"></span>Выручка / Чистая прибыль по месяцам</span></div><div class="cw" style="height:240px"><canvas id="ch-rev"></canvas></div></div>
     <div class="card cp"><div class="ctitle"><span class="l"><span class="dot p"></span>Выручка по направлениям</span></div><div class="cw" style="height:240px"><canvas id="ch-dir"></canvas></div></div>
   </div>
+  <div id="ov-season"></div>
   <div class="card"><div class="ctitle"><span class="l">Сводка по направлениям · YTD</span></div><div id="ov-dir"></div></div>
 </div>
 
@@ -212,33 +225,34 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(63,12
   <div class="ms" id="mo-btns"></div><div id="mo-body"></div>
 </div>
 
-<div id="pg-alloc" class="pg">
-  <div class="card cp">
-    <div class="ctitle"><span class="l"><span class="dot p"></span>Распределение зарплат по направлениям</span>
-      <span style="display:flex;gap:8px;align-items:center">Месяц: <select class="hsel" id="al-month" style="width:auto"></select>
-      <button class="btn btn-gh btn-sm" onclick="addEmp()">+ Сотрудник</button></span></div>
-    <p class="muted" style="margin-bottom:10px">Доля задаётся в % (сумма = 100). Изменение в выбранном месяце сохраняется в историю и применяется к этому и следующим месяцам. Зарплата берётся за выбранный месяц.</p>
-    <div id="al-table"></div>
-  </div>
-  <div class="card ca"><div class="ctitle"><span class="l"><span class="dot a"></span>Контроль ФОТ — пороги «не превышать»</span></div><div id="al-control"></div></div>
-</div>
-
 <div id="pg-staff" class="pg">
   <div class="card cp">
-    <div class="ctitle"><span class="l"><span class="dot p"></span>Сотрудники — ставки, бонусы, условия</span>
+    <div class="ctitle"><span class="l"><span class="dot p"></span>Персонал — зарплаты, распределение и условия</span>
       <button class="btn btn-gh btn-sm" onclick="addEmp()">+ Сотрудник</button></div>
-    <p class="muted" style="margin-bottom:10px">Карточка сотрудника: базовая <b>ставка</b> + <b>бонусная часть</b> = итог, отдел, распределение по направлениям и условия. Это «эталон» для расчёта. В «Распределении» по месяцам можно переопределить факт за конкретный месяц (например, выплату за неполный месяц).</p>
+    <p class="muted" style="margin-bottom:10px">Карточка сотрудника: <b>зарплата</b> (за месяц), отдел, <b>распределение</b> по направлениям (Etsy/E-Com, сумма = 100%) и условия. Отсюда же берётся ФОТ для «Плана года».</p>
     <div id="staff-table"></div>
+  </div>
+  <div class="card ca">
+    <div class="ctitle"><span class="l"><span class="dot a"></span>Контроль ФОТ — пороги «не превышать»</span>
+      <span style="display:flex;gap:8px;align-items:center">Месяц: <select class="hsel" id="al-month" style="width:auto"></select></span></div>
+    <div id="al-control"></div>
   </div>
 </div>
 
 <div id="pg-yearplan" class="pg">
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:.8rem">
     <div class="seg" id="yp-mode"></div>
-    <span class="muted">План по каналам (как в калькуляторе): Etsy ПЧ/ХМ — двухстадийная конверсия (самост. покупки + отдел продаж); E-com — каналы. Выберите месяц; вносите план и факт.</span>
+    <span class="muted">План по каналам: Etsy ПЧ/ХМ (двухстадийная конверсия) и E-com (SEO/Meta/Email/Блогеры). Вручную — только лиды, конверсии, чек, реклама. ФОТ тянется из «Персонала», маржа и общепроизв. — авто из факта. Режим «Сравнение» — план vs факт.</span>
   </div>
   <div class="ms" id="yp-months"></div>
   <div id="yp-body"></div>
+</div>
+
+<div id="pg-prices" class="pg">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:1rem">
+    <div class="seg" id="pc-seg"></div><span class="muted">Юнит-экономика по размерам: цена, себестоимость, маржинальность.</span>
+  </div>
+  <div id="pc-body"></div>
 </div>
 
 <div id="pg-analytics" class="pg">
@@ -269,10 +283,19 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(63,12
       <div class="save-row" style="border:none;padding:0;margin-top:12px"><button class="btn btn-gh" onclick="setupRecovery()">Создать код восстановления</button></div>
       <div id="rec-out"></div></div>
   </div>
+  <div class="card ca"><div class="ctitle"><span class="l"><span class="dot a"></span>Пороги маркеров «Здоровье бизнеса»</span></div>
+    <p class="muted" style="margin-bottom:10px">Норма (🟢) и тревога (🟡) для каждого норматива. Значения вне тревоги — превышение (🔴). Пустое поле = порог по умолчанию (из истории 2024–25).</p>
+    <div id="set-health"></div>
+  </div>
+  <div class="card cp"><div class="ctitle"><span class="l"><span class="dot p"></span>Пороги маржи в «Ценах»</span></div>
+    <p class="muted" style="margin-bottom:10px">Цвет маржи в разделе «Цены» — отдельно по ПЧ и ХМ: 🟢 ≥ зелёного порога · 🟡 между · 🔴 ниже красного. Пусто = по умолчанию (🟢 50% / 🔴 45%).</p>
+    <div id="set-pricethr"></div>
+  </div>
 </div>
 
 <div class="moverlay" id="moverlay"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
+<div id="tipbox"></div>
 
 <script>
 /* ═══ CONFIG ═══ */
@@ -295,7 +318,7 @@ function defData(){return{
 
 /* ═══ STATE ═══ */
 let D=null,_ch={},YEAR=CYR;
-let cfDir='cons',plDir='cons',ypDir='etsy',moMonth=CM,alMonth=CM,ypMonth=CM,ypMode='plan',anView='years',anMetric='Выручка';
+let cfDir='cons',plDir='cons',ypDir='etsy',moMonth=CM,alMonth=CM,ypMonth=CM,ypMode='plan',anView='years',anMetric='Выручка',pricesTab='pch',pcBreak=false,pcEdit=false,hScope='company';
 let pastUnlocked=false; // защита прошлых периодов; снимается только вручную, сбрасывается при перезагрузке
 function isPast(year){return (+year)<CYR;}
 function lockActive(year){return isPast(year)&&!pastUnlocked;}
@@ -310,7 +333,7 @@ function disableIfLocked(rootId,year){if(!lockActive(year))return;const el=docum
 
 /* ═══ CRYPTO ═══ */
 let _dekRaw=null,_dataKey=null,_wrapPw=null,_wrapRc=null,_loginEmail='';
-function _b64e(b){return btoa(String.fromCharCode(...new Uint8Array(b)))}
+function _b64e(b){const u=new Uint8Array(b);let s='';const CH=0x8000;for(let i=0;i<u.length;i+=CH)s+=String.fromCharCode.apply(null,u.subarray(i,i+CH));return btoa(s)}
 function _b64d(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
 async function sha256(s){const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 async function deriveKEK(secret,salt){const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
@@ -334,6 +357,7 @@ function setSync(s){const el=document.getElementById('h-sync');if(!el)return;el.
 
 /* ═══ HELPERS ═══ */
 function fUsd(n){n=+n||0;const s=n<0?'-':'';n=Math.abs(Math.round(n));return s+'$'+n.toLocaleString('en-US')}
+function cssColor(c){return{b:'acc',g:'green',r:'red',p:'indigo',t:'teal',a:'amber'}[c]||'acc';}
 function dirName(id){const d=D.directions.find(x=>x.id===id);return d?d.name:id}
 function gridYears(g){return Object.keys(g.data||{}).map(Number).sort((a,b)=>a-b)}
 function rowArr(g,year,rid){const d=g.data[year]||(g.data[year]={});if(!d[rid])d[rid]=z12();return d[rid];}
@@ -350,12 +374,13 @@ function payrollTotal(year,month){let s=0;for(const e of D.employees)s+=empSalar
 /* ═══ NAV ═══ */
 function sp(id,btn){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('act'));document.getElementById('pg-'+id).classList.add('act');document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('act'));if(btn)btn.classList.add('act');curPage=id;rPage(id);}
 let curPage='overview';
-function rPage(id){({overview:rOverview,cashflow:rCashflow,pnl:rPnl,months:rMonths,alloc:rAlloc,staff:rStaff,yearplan:rYearplan,analytics:rAnalytics,settings:rSettings}[id]||(()=>{}))();}
+function rPage(id){({overview:rOverview,cashflow:rCashflow,pnl:rPnl,months:rMonths,staff:rStaff,yearplan:rYearplan,prices:rPrices,analytics:rAnalytics,settings:rSettings}[id]||(()=>{}))();}
 function rAll(){rYearSel();upHdr();rPage(curPage);}
 
 /* ═══ HEADER ═══ */
 function rYearSel(){const ys=new Set([CYR,YEAR]);gridYears(D.pnl.cons).forEach(y=>ys.add(y));gridYears(D.pnl.etsy).forEach(y=>ys.add(y));const sel=document.getElementById('h-year');const arr=[...ys].sort((a,b)=>b-a);sel.innerHTML=arr.map(y=>`<option value="${y}" ${y===YEAR?'selected':''}>${y}</option>`).join('');}
-function upHdr(){let rev=0,prof=0;for(let m=0;m<12;m++){if(!monthClosed(YEAR,m))continue;rev+=consVal(YEAR,m,'Выручка');prof+=consVal(YEAR,m,'Чистая прибыль');}document.getElementById('h-rev').textContent=fUsd(rev);document.getElementById('h-profit').textContent=fUsd(prof);document.getElementById('h-profit-chip').className='hchip '+(prof>=0?'g':'r');}
+function upHdr(){let rev=0,prof=0;for(let m=0;m<12;m++){if(!monthClosed(YEAR,m))continue;rev+=consVal(YEAR,m,'Выручка');prof+=consVal(YEAR,m,'Чистая прибыль');}document.getElementById('h-rev').textContent=fUsd(rev);document.getElementById('h-profit').textContent=fUsd(prof);document.getElementById('h-profit-chip').className='hchip '+(prof>=0?'g':'r');
+  const hv=document.getElementById('h-health-v'),hc=document.getElementById('h-health');if(hv){const w=overallHealth(YEAR);hv.textContent=HEALTH_TXT[w];hc.className='hchip '+(w==='g'?'g':w==='r'?'r':'');}}
 
 /* ═══ OVERVIEW ═══ */
 // значение строки общего P&L по имени; если нет — сумма направлений
@@ -363,6 +388,35 @@ function consVal(year,month,name){const g=D.pnl.cons;if(g&&g.rows.length){const 
 function consMonth(year,month){const rev=consVal(year,month,'Выручка');const cost=consVal(year,month,'Затраты');const net=consVal(year,month,'Чистая прибыль');const fot=consVal(year,month,'ФОТ');return{rev,cost:Math.abs(cost),net,fot:Math.abs(fot)};}
 // месяц считается «закрытым» (учитывается в сводных показателях) только когда внесена выручка
 function monthClosed(year,month){return consVal(year,month,'Выручка')>0;}
+
+/* ═══ ЗДОРОВЬЕ БИЗНЕСА — МАРКЕРЫ ═══ */
+// агрегат YTD по закрытым месяцам года (выручка, чистая, ФОТ, маркетинг, производство)
+function healthAgg(year){let rev=0,net=0,fot=0,mk=0,prod=0,n=0;for(let m=0;m<12;m++){if(!monthClosed(year,m))continue;n++;rev+=consVal(year,m,'Выручка');net+=consVal(year,m,'Чистая прибыль');fot+=Math.abs(consVal(year,m,'ФОТ'));mk+=Math.abs(consVal(year,m,'Маркетинг и продвижение'));prod+=Math.abs(consVal(year,m,'Производство'));}return{rev,net,fot,mk,prod,n};}
+// агрегат здоровья по направлению (Etsy/E-Com) по закрытым месяцам
+function healthAggDir(dir,year){let rev=0,net=0,fot=0,mk=0,prod=0,n=0;for(let m=0;m<12;m++){const r=pnlVal(dir,year,m,'Выручка');if(r<=0)continue;n++;rev+=r;net+=pnlVal(dir,year,m,'Чистая прибыль');fot+=Math.abs(pnlVal(dir,year,m,'ФОТ'));mk+=dirMkt(dir,year,m);prod+=Math.abs(pnlVal(dir,year,m,'Производство'));}return{rev,net,fot,mk,prod,n};}
+// конфиг маркеров: good/warn — пороги по умолчанию (из истории 2024–25); lower=true → меньше лучше
+const HEALTH=[
+  {id:'rent',label:'Рентабельность',         green:25,yellow:15,red:8, lower:false,calc:a=>a.rev>0?Math.round(a.net/a.rev*100):0,num:a=>a.net, numL:'чистая прибыль',desc:'чистая прибыль ÷ выручка'},
+  {id:'fot', label:'Зарплаты к выручке',      green:20,yellow:27,red:35,lower:true, calc:a=>a.rev>0?Math.round(a.fot/a.rev*100):0,num:a=>a.fot, numL:'ФОТ',           desc:'весь ФОТ ÷ выручка'},
+  {id:'drr', label:'Маркетинг к выручке',     green:18,yellow:22,red:28,lower:true, calc:a=>a.rev>0?Math.round(a.mk/a.rev*100):0,num:a=>a.mk,  numL:'маркетинг',     desc:'реклама и продвижение ÷ выручка (ДРР)'},
+  {id:'prod',label:'Производство к выручке',  green:32,yellow:37,red:42,lower:true, calc:a=>a.rev>0?Math.round(a.prod/a.rev*100):0,num:a=>a.prod,numL:'производство',  desc:'себестоимость производства ÷ выручка'},
+];
+// единый текст подсказки для маркера здоровья
+function hTip(m,a,scope){const v=m.calc(a);const g=hThr(scope,m.id,'green',m.green);return `${m.label}\n${m.numL}: ${fUsd(m.num(a))} ÷ выручка ${fUsd(a.rev)} = ${v}%\nнорма ${m.lower?'≤':'≥'}${g}% · ${m.lower?'меньше лучше':'больше лучше'}`;}
+const HSCOPES=[['company','Компания'],['etsy','Etsy'],['ecom','E-Com']];
+function hThr(scope,id,fld,def){const s=D.health&&D.health[scope],o=s&&s[id];return (o&&o[fld]!=null&&o[fld]!=='')?+o[fld]:def;}
+function hStatus(m,v,scope){scope=scope||'company';const g=hThr(scope,m.id,'green',m.green),y=hThr(scope,m.id,'yellow',m.yellow);return m.lower?(v<=g?'g':v<=y?'a':'r'):(v>=g?'g':v>=y?'a':'r');}
+function hCrit(m,v,scope){scope=scope||'company';const red=hThr(scope,m.id,'red',m.red);return m.lower?v>=red:v<=red;}
+// E-Com burn: накопленный убыток, месяцев убытка подряд, ФОТ/выручка YTD
+function ecomBurn(year){
+  let rev=0,net=0,fot=0,streak=0;
+  for(let m=0;m<12;m++){const r=pnlVal('ecom',year,m,'Выручка'),nt=pnlVal('ecom',year,m,'Чистая прибыль');if(r===0&&nt===0)continue;rev+=r;net+=nt;fot+=Math.abs(pnlVal('ecom',year,m,'ФОТ'));if(nt<0)streak++;else streak=0;}
+  const fotR=rev>0?Math.round(fot/rev*100):0;
+  const status=net>=0?'g':(fotR>50||streak>=6?'r':'a');
+  return{rev,net,fot,fotR,streak,status};
+}
+function overallHealth(year){const a=healthAgg(year);let worst='g';HEALTH.forEach(m=>{const s=hStatus(m,m.calc(a),'company');if(s==='r')worst='r';else if(s==='a'&&worst!=='r')worst='a';});const eb=ecomBurn(year);if(eb.status==='r')worst='r';else if(eb.status==='a'&&worst!=='r')worst='a';return worst;}
+const HEALTH_TXT={g:'🟢 в норме',a:'🟡 внимание',r:'🔴 риск'};
 function rOverview(){
   let y={rev:0,cost:0,net:0,fot:0},closedN=0;for(let m=0;m<12;m++){if(!monthClosed(YEAR,m))continue;closedN++;const c=consMonth(YEAR,m);y.rev+=c.rev;y.cost+=c.cost;y.net+=c.net;y.fot+=c.fot;}
   const cur=consMonth(YEAR,CM);
@@ -371,7 +425,7 @@ function rOverview(){
     ['Чистая прибыль · YTD',fUsd(y.net),y.net>=0?'g':'r',`Тек. мес: ${fUsd(cur.net)}`],
     ['ФОТ · YTD',fUsd(y.fot),'p',`${y.rev>0?Math.round(y.fot/y.rev*100):0}% от выручки`],
     ['Рентабельность · YTD',(y.rev>0?Math.round(y.net/y.rev*100):0)+'%','t',`Затраты: ${fUsd(y.cost)}`],
-  ].map(k=>`<div class="kpi"><div class="kpi-l"><span class="kl">${k[0]}</span><span class="kv ${k[2]}">${k[1]}</span></div><div class="ks">${k[3]}</div></div>`).join('');
+  ].map(k=>`<div class="kpi" style="border-left:3px solid var(--${cssColor(k[2])})"><div class="kpi-l"><span class="kl">${k[0]}</span><span class="kv ${k[2]}">${k[1]}</span></div><div class="ks">${k[3]}</div></div>`).join('');
   let rows=D.directions.map(d=>{let rev=0,net=0,fot=0;for(let m=0;m<12;m++){if(!monthClosed(YEAR,m))continue;rev+=pnlVal(d.id,YEAR,m,'Выручка');net+=pnlVal(d.id,YEAR,m,'Чистая прибыль');fot+=Math.abs(pnlVal(d.id,YEAR,m,'ФОТ'));}return`<tr><td>${d.name}</td><td>${fUsd(rev)}</td><td>${fUsd(fot)}</td><td class="${net>=0?'posv':'negv'}">${fUsd(net)}</td><td>${rev>0?Math.round(net/rev*100):0}%</td></tr>`;}).join('');
   const closedNote=closedN<12?`<p class="muted" style="margin-top:8px">В сводных показателях учтены только закрытые месяцы (с внесённой выручкой): <b>${closedN}</b>. Незакрытые месяцы не искажают рентабельность.</p>`:'';
   document.getElementById('ov-dir').innerHTML=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Направление</th><th>Выручка YTD</th><th>ФОТ YTD</th><th>Чистая прибыль YTD</th><th>Рентаб.</th></tr></thead><tbody>${rows}</tbody></table></div>${closedNote}`;
@@ -379,6 +433,51 @@ function rOverview(){
   mkChart('ch-rev','bar',{labels:MN,datasets:[{label:'Выручка',data:rev,backgroundColor:'#3f7ad1'},{label:'Чистая прибыль',data:net,backgroundColor:'#1f9d6b'}]});
   const ds=D.directions.map((d,i)=>{const a=[];for(let m=0;m<12;m++)a.push(monthClosed(YEAR,m)?Math.round(pnlVal(d.id,YEAR,m,'Выручка')):null);return{label:d.name,data:a,backgroundColor:i===0?'#6f5ae0':'#cf8500'};});
   mkChart('ch-dir','bar',{labels:MN,datasets:ds});
+  rHealthDash();rSeason();
+}
+// ── дашборд «Здоровье бизнеса» ──
+function rHealthDash(){
+  const el=document.getElementById('ov-health');if(!el)return;
+  const a=healthAgg(YEAR);const eb=ecomBurn(YEAR);
+  if(a.n===0){el.innerHTML='';return;}
+  const tile=(label,val,st,hint,tip)=>`<div class="kpi" style="border-left:3px solid var(--${st==='g'?'green':st==='a'?'amber':'red'})"${tip?` data-tip="${tip.replace(/"/g,'&quot;')}"`:''}><div class="kpi-l"><span class="kl"><span class="dot ${st}"></span> ${label}</span><span class="kv" style="font-size:18px;color:var(--${st==='g'?'green':st==='a'?'amber3':'red'})">${val}</span></div><div class="ks" style="font-size:10px">${hint}</div></div>`;
+  let tiles=HEALTH.map(m=>{const v=m.calc(a);const st=hStatus(m,v,'company');const crit=hCrit(m,v,'company');return tile(m.label,v+'%'+(crit?' ⚠️':''),st,`${m.desc} · норма ${m.lower?'≤'+hThr('company',m.id,'green',m.green):'≥'+hThr('company',m.id,'green',m.green)}%`,hTip(m,a,'company')+(crit?'\n⚠️ за критическим порогом':''));}).join('');
+  // E-Com burn-плитка
+  tiles+=tile('E-Com (инвестпроект)',fUsd(eb.net),eb.status,eb.net>=0?'накопл. прибыль · вышел в плюс':`накопл. убыток${eb.streak>=2?', '+eb.streak+' мес подряд':''} · зарплаты ${eb.fotR}% выручки`,`E-Com — инвестпроект\nНакопл. чистая прибыль за период: ${fUsd(eb.net)}\nЗарплаты ${eb.fotR}% выручки${eb.streak>=2?'\nубыток '+eb.streak+' мес подряд':''}`);
+  const overall=overallHealth(YEAR);
+  // ── разбивка по направлениям (Etsy / E-Com) ──
+  const dirHealth=D.directions.map(d=>({d,a:healthAggDir(d.id,YEAR)})).filter(x=>x.a.n>0);
+  let dirRows='';
+  dirHealth.forEach(({d,a})=>{
+    const cell=m=>{const v=m.calc(a);const st=hStatus(m,v,d.id);const crit=hCrit(m,v,d.id);const cls=st==='g'?'ghi':st==='a'?'ahi':'rhi';return `<td class="${cls}" style="text-align:center;font-weight:700" data-tip="${(d.name+' · '+hTip(m,a,d.id)).replace(/"/g,'&quot;')}">${v}%${crit?' ⚠️':''}</td>`;};
+    dirRows+=`<tr><td style="font-weight:700">${d.name}</td><td style="text-align:center">${fUsd(a.rev)}</td>${HEALTH.map(cell).join('')}</tr>`;
+  });
+  const dirTable=dirHealth.length?`<div style="margin-top:1rem"><div class="kl" style="margin-bottom:6px">Здоровье по направлениям (🟢 хорошо · 🟡 на грани · 🔴 риск)</div><div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Направление</th><th>Выручка</th>${HEALTH.map(m=>`<th>${m.label}</th>`).join('')}</tr></thead><tbody>${dirRows}</tbody></table></div></div>`:'';
+  el.innerHTML=`<div class="card c${overall==='g'?'g':overall==='a'?'a':'r'}" style="margin-bottom:1.2rem"><div class="ctitle"><span class="l"><span class="dot ${overall}"></span>Здоровье бизнеса · ${YEAR} (YTD${a.n<12?', '+a.n+' мес':''})</span><span class="pill ${overall==='g'?'s':'e'}" style="background:rgba(${overall==='g'?'31,157,107':overall==='a'?'207,133,0':'224,96,58'},.12);color:var(--${overall==='g'?'green':overall==='a'?'amber3':'red'})">${HEALTH_TXT[overall]}</span></div><div class="g4" style="gap:.7rem">${tiles}</div>${dirTable}<p class="muted" style="margin-top:10px;font-size:11px">Сверху — по компании; снизу — отдельно <b>Etsy</b> (основной доход) и <b>E-Com</b>. Зелёным подсвечено хорошее, красным — риск. Пороги настраиваются в Настройках.</p></div>`;
+}
+// ── сезонный коридор выручки ──
+function rSeason(){
+  const el=document.getElementById('ov-season');if(!el)return;
+  const ys=gridYears(D.pnl.cons);if(!ys.length){el.innerHTML='';return;}
+  const maxY=YEAR;const hist=ys.filter(y=>y<YEAR);
+  if(!hist.length){el.innerHTML='';return;}
+  const mn=[],mx=[],cur=[],below=[],above=[];
+  for(let m=0;m<12;m++){
+    const vals=hist.filter(y=>monthClosed(y,m)).map(y=>Math.round(consVal(y,m,'Выручка')));
+    mn.push(vals.length?Math.min(...vals):null);mx.push(vals.length?Math.max(...vals):null);
+    const cv=monthClosed(maxY,m)?Math.round(consVal(maxY,m,'Выручка')):null;cur.push(cv);
+    below.push(cv!=null&&vals.length&&cv<Math.min(...vals));
+    above.push(cv!=null&&vals.length&&cv>Math.max(...vals));
+  }
+  const nBelow=below.filter(Boolean).length,nAbove=above.filter(Boolean).length;
+  const pills=`${nAbove?`<span class="pill" style="background:rgba(31,157,107,.14);color:var(--green)">🟢 ${nAbove} мес выше истор. максимума</span>`:''}${nBelow?`<span class="pill e" style="background:rgba(224,96,58,.12);color:var(--red)">🔴 ${nBelow} мес ниже минимума</span>`:''}`;
+  const ptColor=m=>below[m]?'#e0603a':(above[m]?'#1f9d6b':'#0d9488');
+  el.innerHTML=`<div class="card ct"><div class="ctitle"><span class="l"><span class="dot t"></span>Сезонный коридор выручки — ${maxY} на фоне ${hist.join('/')}</span><span style="display:flex;gap:6px;flex-wrap:wrap">${pills}</span></div><div class="cw" style="height:300px"><canvas id="ov-season-ch"></canvas></div><p class="muted" style="margin-top:8px;font-size:11px">Серая полоса — исторический диапазон (min–max за прошлые годы) по каждому месяцу. Линия — текущий год ${maxY}. 🟢 точка = месяц <b>выше</b> исторического максимума (рекорд!) · 🔴 точка = <b>ниже</b> минимума (спад).</p></div>`;
+  mkChartO('ov-season-ch',{type:'line',data:{labels:MN,datasets:[
+    {label:'Истор. min',data:mn,borderColor:'rgba(120,125,130,.35)',backgroundColor:'rgba(0,0,0,0)',borderWidth:1,pointRadius:0,fill:false,tension:.3,spanGaps:true},
+    {label:'Истор. диапазон',data:mx,borderColor:'rgba(120,125,130,.35)',backgroundColor:'rgba(120,125,130,.16)',borderWidth:1,pointRadius:0,fill:'-1',tension:.3,spanGaps:true},
+    {label:String(maxY),data:cur,borderColor:'#0d9488',backgroundColor:cur.map((_,m)=>ptColor(m)),borderWidth:3,pointRadius:cur.map((_,m)=>(below[m]||above[m])?5:3),pointBackgroundColor:cur.map((_,m)=>ptColor(m)),tension:.3,spanGaps:false},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10,filter:i=>i.text!=='Истор. min'}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9},callback:v=>'$'+(v/1000).toFixed(0)+'k'}}}}});
 }
 function mkChart(id,type,data){const cv=document.getElementById(id);if(!cv||!window.Chart)return;if(_ch[id])_ch[id].destroy();_ch[id]=new Chart(cv,{type,data,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{size:10},boxWidth:10}}},scales:{x:{grid:{display:false},ticks:{font:{size:9}}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9},callback:v=>'$'+(v/1000).toFixed(0)+'k'}}}}});}
 
@@ -422,49 +521,97 @@ function rCashflow(){rSeg('cf-seg',cfDir,v=>{cfDir=v;rCashflow();},segCons());co
 function rPnl(){rSeg('pl-seg',plDir,v=>{plDir=v;rPnl();},segCons());const g=D.pnl[plDir];const ys=gridYears(g);const yr=ys.includes(YEAR)?YEAR:(ys[ys.length-1]||YEAR);renderGrid(g,yr,'pl-table','pnl',plDir);}
 
 /* ═══ MONTHS ═══ */
+// группы затрат для структуры месяца (по строкам общего P&L)
+const MO_GROUPS=[
+  {name:'ФОТ',key:'ФОТ',cls:'p'},
+  {name:'Производство',key:'Производство',cls:'a'},
+  {name:'Маркетинг',key:'Маркетинг и продвижение',cls:'b'},
+  {name:'Комиссии',key:'Комиссии',cls:'t'},
+  {name:'Обучение персонала',key:'Затраты на обучение персонала',cls:'g'},
+  {name:'Сопровождение бизнеса',key:'Сопровождение бизнеса',cls:'r'},
+];
+function prevYM(year,month){return month===0?[year-1,11]:[year,month-1];}
+// бейдж изменения; higherGood=true → рост зелёный (выручка/прибыль), false → рост красный (затраты/ФОТ)
+function moDelta(cur,prev,higherGood,tip){
+  if(prev==null||prev===0||!isFinite(prev))return `<span class="kpct" style="background:var(--bg3);color:var(--text3)" data-tip="${(tip||'').replace(/"/g,'&quot;')}\nнет данных для сравнения">—</span>`;
+  const pc=Math.round((cur-prev)/Math.abs(prev)*100);const good=higherGood?pc>=0:pc<=0;
+  return `<span class="kpct ${good?'pos':'neg'}" data-tip="${(tip||'').replace(/"/g,'&quot;')}\n= ${pc>=0?'+':''}${pc}%">${pc>=0?'+':''}${pc}%</span>`;
+}
+// светофор коэффициента: пороги [хорошо ≤ a, тревога ≤ b]; lowerBetter=true → меньше лучше
+function moStatus(v,a,b,lowerBetter){if(lowerBetter)return v<=a?'g':(v<=b?'a':'r');return v>=a?'g':(v>=b?'a':'r');}
+function moCoefRow(label,pct,status,hint,tip){
+  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--brd)"${tip?` data-tip="${tip.replace(/"/g,'&quot;')}"`:''}><span class="muted" style="display:flex;align-items:center;gap:7px"><span class="dot ${status}"></span>${label}${hint?`<span style="color:var(--text3);font-size:10px">${hint}</span>`:''}</span><b style="font-family:'JetBrains Mono',monospace;font-size:13px">${pct}</b></div>`;
+}
 function rMonths(){
   document.getElementById('mo-btns').innerHTML=MN.map((m,i)=>`<button class="mb ${i===moMonth?'act':''} ${i===CM&&YEAR===CYR?'cur':''}" onclick="moMonth=${i};rMonths()">${m}</button>`).join('');
-  const m=moMonth,c=consMonth(YEAR,m);
-  let b=`<div class="g4">`+
-    tile('Выручка',fUsd(c.rev),'b')+tile('Затраты',fUsd(c.cost),'r')+
-    tile('Чистая прибыль',fUsd(c.net),c.net>=0?'g':'r')+tile('Рентабельность',(c.rev>0?Math.round(c.net/c.rev*100):0)+'%','t')+`</div>`;
-  const closed=monthClosed(YEAR,m);
-  b=`${!closed?`<div class="warn" style="margin-bottom:1rem">⚠️ Месяц не закрыт (выручка не внесена) — он <b>не учитывается</b> в сводных показателях Обзора, пока данные не внесены полностью.</div>`:''}`+b;
-  b+=`<div class="card"><div class="ctitle"><span class="l">${MN[m]} ${YEAR} · по направлениям ${m===CM&&YEAR===CYR?'<span class="pill s">текущий</span>':''}${!closed?'<span class="pill e">не закрыт</span>':''}</span></div><div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Направление</th><th>Выручка</th><th>Затраты</th><th>ФОТ</th><th>Чистая прибыль</th><th>Рентаб.</th></tr></thead><tbody>`;
-  D.directions.forEach(d=>{const rev=pnlVal(d.id,YEAR,m,'Выручка'),cost=Math.abs(pnlVal(d.id,YEAR,m,'Затраты')),fot=Math.abs(pnlVal(d.id,YEAR,m,'ФОТ')),net=pnlVal(d.id,YEAR,m,'Чистая прибыль');b+=`<tr><td>${d.name}</td><td>${fUsd(rev)}</td><td>${fUsd(cost)}</td><td>${fUsd(fot)}</td><td class="${net>=0?'posv':'negv'}">${fUsd(net)}</td><td>${rev>0?Math.round(net/rev*100):0}%</td></tr>`;});
+  const m=moMonth,c=consMonth(YEAR,m),closed=monthClosed(YEAR,m);
+  const [py,pm]=prevYM(YEAR,m);const cp=consMonth(py,pm);              // прошлый месяц
+  const cy=consMonth(YEAR-1,m);                                        // тот же месяц прошлого года
+  const rent=c.rev>0?Math.round(c.net/c.rev*100):0;
+  // ── светофор месяца ──
+  const tl=rent>=20?{c:'g',t:'🟢 Здоровый месяц'}:rent>=12?{c:'a',t:'🟡 Под контролем'}:rent>=0?{c:'r',t:'🟠 Низкая рентабельность'}:{c:'r',t:'🔴 Месяц в минусе'};
+  let b='';
+  if(!closed)b+=`<div class="warn" style="margin-bottom:1rem">⚠️ Месяц не закрыт (выручка не внесена) — он <b>не учитывается</b> в сводных показателях Обзора, пока данные не внесены полностью.</div>`;
+  // заголовок-светофор
+  b+=`<div class="card c${tl.c==='g'?'g':tl.c==='a'?'a':'r'}" style="margin-bottom:1.2rem"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><div style="font-size:16px;font-weight:800">${MN[m]} ${YEAR} ${m===CM&&YEAR===CYR?'<span class="pill s">текущий</span>':''}${!closed?'<span class="pill e">не закрыт</span>':''}</div><div class="muted" style="margin-top:3px">${tl.t} · рентабельность <b>${rent}%</b></div></div><div style="text-align:right"><div class="kl">Чистая прибыль</div><div class="kv ${c.net>=0?'g':'r'}" style="font-size:24px">${fUsd(c.net)}</div></div></div></div>`;
+  // ── KPI с Δ к прошлому месяцу и к тому же месяцу прошлого года ──
+  const pmL=`${MN[pm]} ${py}`,pyL=`${MN[m]} ${YEAR-1}`;
+  const dl=(cur,prevM,prevY,hg,name)=>{
+    const tM=`${name} · Δ к прошлому месяцу\n${MN[m]} ${YEAR}: ${fUsd(cur)}\n${pmL}: ${fUsd(prevM)}`;
+    const tY=`${name} · Δ год к году\n${MN[m]} ${YEAR}: ${fUsd(cur)}\n${pyL}: ${fUsd(prevY)}`;
+    return `Δ мес ${moDelta(cur,prevM,hg,tM)} · Δ год ${moDelta(cur,prevY,hg,tY)}`;
+  };
+  b+=`<div class="g4">`+
+    moTile('Выручка',fUsd(c.rev),'b',dl(c.rev,cp.rev,cy.rev,true,'Выручка'))+
+    moTile('Затраты',fUsd(c.cost),'r',dl(c.cost,cp.cost,cy.cost,false,'Затраты'))+
+    moTile('Чистая прибыль',fUsd(c.net),c.net>=0?'g':'r',dl(c.net,cp.net,cy.net,true,'Чистая прибыль'))+
+    moTile('ФОТ',fUsd(c.fot),'p',dl(c.fot,cp.fot,cy.fot,false,'ФОТ'))+`</div>`;
+  b+=`<div class="moinfo"><span>📊</span><span><b>Δ мес</b> — к предыдущему месяцу (${pmL}) · <b>Δ год</b> — к тому же месяцу год назад (${pyL}), год-к-году. Наведи на % — база и расчёт. Рост затрат/ФОТ = красный, рост выручки/прибыли = зелёный.</span></div>`;
+  // ── коэффициенты + структура затрат ──
+  const pofR=(v)=>c.rev>0?Math.round(v/c.rev*100):0;
+  const mkV=Math.abs(consVal(YEAR,m,'Маркетинг и продвижение')),prV=Math.abs(consVal(YEAR,m,'Производство'));
+  const fotR=pofR(c.fot),mkR=pofR(mkV),prR=pofR(prV);
+  const gp=consVal(YEAR,m,'Валовая/Маржинальная прибыль');const gpR=c.rev>0?Math.round(gp/c.rev*100):0;
+  const coTip=(name,num,den)=>`${name}\n${fUsd(num)} ÷ ${fUsd(den)} = ${den>0?Math.round(num/den*100):0}%`;
+  b+=`<div class="g2">`;
+  b+=`<div class="card cp"><div class="ctitle"><span class="l"><span class="dot p"></span>Коэффициенты месяца</span></div>`+
+     moCoefRow('Валовая маржа',gpR+'%',moStatus(gpR,55,40,false),'от выручки',coTip('Валовая маржа: валовая прибыль ÷ выручка',gp,c.rev))+
+     moCoefRow('Рентабельность ЧП',rent+'%',moStatus(rent,20,12,false),'',coTip('Рентабельность: чистая прибыль ÷ выручка',c.net,c.rev))+
+     moCoefRow('ФОТ / Выручка',fotR+'%',moStatus(fotR,20,27,true),'норма ≤20%',coTip('ФОТ ÷ выручка',c.fot,c.rev))+
+     moCoefRow('Маркетинг / Выручка (ДРР)',mkR+'%',moStatus(mkR,18,22,true),'норма ≤18%',coTip('Маркетинг ÷ выручка (ДРР)',mkV,c.rev))+
+     moCoefRow('Производство / Выручка',prR+'%',moStatus(prR,32,37,true),'норма ≤32%',coTip('Производство ÷ выручка',prV,c.rev))+
+     `<p class="muted" style="margin-top:10px;font-size:11px">🟢 в норме · 🟡 на грани · 🔴 превышение. Пороги ориентировочные (по истории 2024–2025); настраиваемые маркеры — в планах.</p></div>`;
+  // структура затрат
+  let groups=MO_GROUPS.map(g=>({...g,v:Math.abs(consVal(YEAR,m,g.key))})).filter(g=>g.v>0);
+  const gSum=groups.reduce((a,g)=>a+g.v,0);const other=Math.max(0,c.cost-gSum);
+  if(other>0)groups.push({name:'Прочее',cls:'t',v:other});
+  groups.sort((a,x)=>x.v-a.v);
+  const maxG=Math.max(1,...groups.map(g=>g.v));
+  let gs=`<div class="card cb"><div class="ctitle"><span class="l"><span class="dot b"></span>Структура затрат · ${fUsd(c.cost)}</span></div>`;
+  if(!groups.length)gs+=`<p class="muted">Нет данных по затратам.</p>`;
+  groups.forEach(g=>{const pc=c.cost>0?Math.round(g.v/c.cost*100):0;const pr=pofR(g.v);
+    const tip=`${g.name}: ${fUsd(g.v)}\n${pc}% от затрат (${fUsd(c.cost)})\n${pr}% от выручки (${fUsd(c.rev)})`;
+    gs+=`<div style="margin-bottom:9px" data-tip="${tip.replace(/"/g,'&quot;')}"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span style="font-weight:600">${g.name}</span><span style="font-family:'JetBrains Mono',monospace;color:var(--text2)">${fUsd(g.v)} · <b style="color:var(--text)">${pc}%</b> затр · ${pr}% выр</span></div><div style="height:7px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="height:100%;width:${Math.round(g.v/maxG*100)}%;background:var(--${g.cls==='g'?'green':g.cls==='a'?'amber':g.cls==='p'?'indigo':g.cls==='t'?'teal':g.cls==='r'?'red':'acc'})"></div></div></div>`;});
+  gs+=`</div>`;
+  b+=gs+`</div>`;
+  // ── по направлениям ──
+  b+=`<div class="card"><div class="ctitle"><span class="l">По направлениям</span></div><div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Направление</th><th>Выручка</th><th>Затраты</th><th>ФОТ</th><th>ФОТ/выр</th><th>Чистая прибыль</th><th>Рентаб.</th></tr></thead><tbody>`;
+  D.directions.forEach(d=>{const rev=pnlVal(d.id,YEAR,m,'Выручка'),cost=Math.abs(pnlVal(d.id,YEAR,m,'Затраты')),fot=Math.abs(pnlVal(d.id,YEAR,m,'ФОТ')),net=pnlVal(d.id,YEAR,m,'Чистая прибыль');b+=`<tr><td>${d.name}</td><td>${fUsd(rev)}</td><td>${fUsd(cost)}</td><td>${fUsd(fot)}</td><td class="${rev>0&&fot/rev>0.3?'negv':''}">${rev>0?Math.round(fot/rev*100):0}%</td><td class="${net>=0?'posv':'negv'}">${fUsd(net)}</td><td>${rev>0?Math.round(net/rev*100):0}%</td></tr>`;});
   b+=`</tbody></table></div></div>`;
+  // ── спарклайн года ──
+  b+=`<div class="card ct"><div class="ctitle"><span class="l"><span class="dot t"></span>Динамика ${YEAR} (выбранный месяц выделен)</span></div><div class="cw" style="height:220px"><canvas id="mo-spark"></canvas></div></div>`;
   document.getElementById('mo-body').innerHTML=b;
+  // рисуем спарклайн
+  const rev=[],net=[];for(let i=0;i<12;i++){const cl=monthClosed(YEAR,i);const cc=consMonth(YEAR,i);rev.push(cl?Math.round(cc.rev):null);net.push(cl?Math.round(cc.net):null);}
+  mkChart('mo-spark','bar',{labels:MN,datasets:[
+    {label:'Выручка',data:rev,backgroundColor:MN.map((_,i)=>i===m?'#2f63b5':'rgba(63,122,209,.45)'),borderRadius:3},
+    {label:'Чистая прибыль',data:net,backgroundColor:MN.map((_,i)=>i===m?'#15795a':'rgba(31,157,107,.45)'),borderRadius:3},
+  ]});
 }
 function tile(l,v,c){return`<div class="kpi"><div class="kpi-l"><span class="kl">${l}</span><span class="kv ${c}">${v}</span></div></div>`;}
+function moTile(l,v,c,sub){return`<div class="kpi"><div class="kpi-l"><span class="kl">${l}</span><span class="kv ${c}">${v}</span><span class="ks" style="text-align:left;font-size:10.5px">${sub}</span></div></div>`;}
 
-/* ═══ ALLOCATION ═══ */
-function rAlloc(){
-  const ms=document.getElementById('al-month');ms.innerHTML=MN.map((m,i)=>`<option value="${i}" ${i===alMonth?'selected':''}>${m} ${YEAR}</option>`).join('');ms.onchange=()=>{alMonth=+ms.value;rAlloc();};
-  const byDept={};D.employees.forEach(e=>{(byDept[e.dept||'—']=byDept[e.dept||'—']||[]).push(e);});
-  const span=6+D.directions.length;
-  let h=`<div class="tw"><table class="tbl" style="min-width:720px"><thead><tr><th>Сотрудник</th><th>Ставка, $</th><th>Бонус, $</th><th>Итого, $/мес</th>${D.directions.map(d=>`<th>${d.name}, %</th>`).join('')}<th>Σ%</th><th></th></tr></thead><tbody>`;
-  if(!D.employees.length)h+=`<tr><td colspan="${span}" style="text-align:center;color:var(--text3)">Импортируйте данные компании или добавьте сотрудника →</td></tr>`;
-  Object.keys(byDept).forEach(dep=>{
-    let dFot=0;byDept[dep].forEach(e=>dFot+=empSalary(e,YEAR,alMonth));
-    h+=`<tr class="deprow"><td colspan="${span-1}">${dep}</td><td>${fUsd(dFot)}</td></tr>`;
-    byDept[dep].forEach(e=>{
-      const a=allocPct(e,YEAR,alMonth);let sum=0;const tot=empSalary(e,YEAR,alMonth);
-      h+=`<tr><td><input data-emp="${e.id}" data-f="name" value="${e.name||''}" style="text-align:left;font-family:inherit"></td>`;
-      h+=`<td><input data-emp="${e.id}" data-f="base" value="${e.base?Math.round(e.base):''}" inputmode="decimal"></td>`;
-      h+=`<td><input data-emp="${e.id}" data-f="bonus" value="${e.bonus?Math.round(e.bonus):''}" inputmode="decimal"></td>`;
-      h+=`<td><b>${fUsd(tot)}</b></td>`;
-      D.directions.forEach(d=>{const v=+a[d.id]||0;sum+=v;h+=`<td><input data-emp="${e.id}" data-alloc="${d.id}" value="${v||''}" inputmode="decimal"></td>`;});
-      h+=`<td class="${Math.round(sum)===100?'posv':'negv'}">${Math.round(sum)}%</td><td><button class="btn btn-r btn-sm" onclick="delEmp('${e.id}')">✕</button></td></tr>`;
-    });
-  });
-  h+=`<tr class="bold"><td>ФОТ за ${MN[alMonth]} ${YEAR}</td><td></td><td></td><td>${fUsd(payrollTotal(YEAR,alMonth))}</td>`;
-  D.directions.forEach(d=>h+=`<td>${fUsd(payroll(d.id,YEAR,alMonth))}</td>`);h+=`<td></td><td></td></tr></tbody></table></div>`;
-  document.getElementById('al-table').innerHTML=lockBar(YEAR)+h;
-  document.querySelectorAll('#al-table input[data-f]').forEach(inp=>inp.onchange=()=>{const e=D.employees.find(x=>x.id===inp.dataset.emp);if(!e)return;const f=inp.dataset.f;if(f==='base'){e.base=+inp.value||0;const k=YEAR+'-'+alMonth;if(e.salHist)e.salHist[k]=(+e.base||0)+(+e.bonus||0);e.salary=(+e.base||0)+(+e.bonus||0);}else if(f==='bonus'){e.bonus=+inp.value||0;const k=YEAR+'-'+alMonth;if(e.salHist)e.salHist[k]=(+e.base||0)+(+e.bonus||0);e.salary=(+e.base||0)+(+e.bonus||0);}else e.name=inp.value;autoSave();rAlloc();});
-  document.querySelectorAll('#al-table input[data-alloc]').forEach(inp=>inp.onchange=()=>{const e=D.employees.find(x=>x.id===inp.dataset.emp);if(!e)return;const key=YEAR+'-'+alMonth;const base=Object.assign({},allocPct(e,YEAR,alMonth));base[inp.dataset.alloc]=+inp.value||0;if(!e.allocHist)e.allocHist={};e.allocHist[key]=base;autoSave();rAlloc();});
-  disableIfLocked('al-table',YEAR);
-  rAlControl();
-}
+/* ═══ PERSONNEL HELPERS ═══ */
 function addEmp(){D.employees.push({id:'e'+Date.now(),name:'',dept:'—',base:0,bonus:0,salary:0,etsyPct:100,ecomPct:0,note:'',salHist:{},allocHist:{}});autoSave();rPage(curPage);}
 function delEmp(id){if(!confirm('Удалить сотрудника?'))return;D.employees=D.employees.filter(e=>e.id!==id);autoSave();rPage(curPage);}
 function empTotal(e){return (+e.base||0)+(+e.bonus||0);}
@@ -473,36 +620,43 @@ function rStaff(){
   const deps=[];D.employees.forEach(e=>{const d=e.dept||'—';if(!deps.includes(d))deps.push(d);});
   const byDept={};D.employees.forEach(e=>{(byDept[e.dept||'—']=byDept[e.dept||'—']||[]).push(e);});
   const compTotal=D.employees.reduce((a,e)=>a+empTotal(e),0)||1;
-  let h=`<div class="tw"><table class="tbl" style="min-width:900px"><thead><tr><th>Имя</th><th>Отдел</th><th>Ставка, $</th><th>Бонус, $</th><th>Итого, $</th><th>Etsy %</th><th>E-Com %</th><th>Условия (ссылка)</th><th></th></tr></thead><tbody>`;
+  let h=`<div class="tw"><table class="tbl" style="min-width:900px"><thead><tr><th>Имя</th><th>Отдел</th><th>ЗП, $/мес</th><th>Etsy %</th><th>Etsy $</th><th>E-Com %</th><th>E-Com $</th><th>Условия (ссылка)</th><th></th></tr></thead><tbody>`;
   if(!D.employees.length)h+=`<tr><td colspan="9" style="text-align:center;color:var(--text3)">Добавьте сотрудника →</td></tr>`;
   deps.forEach(dep=>{
-    const list=byDept[dep];const base=list.reduce((a,e)=>a+(+e.base||0),0),bonus=list.reduce((a,e)=>a+(+e.bonus||0),0),tot=base+bonus;
-    h+=`<tr class="deprow"><td colspan="2">${dep} · ${list.length} чел.</td><td>${fUsd(base)}</td><td>${fUsd(bonus)}</td><td>${fUsd(tot)}</td><td colspan="4">${Math.round(tot/compTotal*100)}% от ФОТ компании</td></tr>`;
-    list.forEach(e=>{const t=empTotal(e);const note=(e.note||'');
+    const list=byDept[dep];const tot=list.reduce((a,e)=>a+empTotal(e),0);
+    const dEtsy=list.reduce((a,e)=>a+empTotal(e)*((+e.etsyPct||0)/100),0),dEcom=list.reduce((a,e)=>a+empTotal(e)*((+e.ecomPct||0)/100),0);
+    h+=`<tr class="deprow"><td colspan="2">${dep} · ${list.length} чел.</td><td>${fUsd(tot)}</td><td></td><td>${fUsd(dEtsy)}</td><td></td><td>${fUsd(dEcom)}</td><td colspan="2">${Math.round(tot/compTotal*100)}% от ФОТ компании</td></tr>`;
+    list.forEach(e=>{const t=empTotal(e);const note=(e.note||'');const eEtsy=t*((+e.etsyPct||0)/100),eEcom=t*((+e.ecomPct||0)/100);
       h+=`<tr><td><input data-s="${e.id}" data-f="name" value="${(e.name||'').replace(/"/g,'&quot;')}" style="text-align:left;font-family:inherit"></td>`+
         `<td><input data-s="${e.id}" data-f="dept" value="${(e.dept||'').replace(/"/g,'&quot;')}" list="deptlist" style="text-align:left;font-family:inherit"></td>`+
-        `<td><input data-s="${e.id}" data-f="base" value="${e.base?Math.round(e.base):''}" inputmode="decimal"></td>`+
-        `<td><input data-s="${e.id}" data-f="bonus" value="${e.bonus?Math.round(e.bonus):''}" inputmode="decimal"></td>`+
-        `<td><b>${fUsd(t)}</b></td>`+
+        `<td><input data-s="${e.id}" data-f="zp" value="${t?Math.round(t):''}" inputmode="decimal"></td>`+
         `<td><input data-s="${e.id}" data-f="etsyPct" value="${e.etsyPct||''}" inputmode="decimal"></td>`+
+        `<td style="color:var(--text2)">${eEtsy?fUsd(eEtsy):'—'}</td>`+
         `<td><input data-s="${e.id}" data-f="ecomPct" value="${e.ecomPct||''}" inputmode="decimal"></td>`+
+        `<td style="color:var(--text2)" class="${eEcom?'':''}">${eEcom?fUsd(eEcom):'—'}</td>`+
         `<td><div style="display:flex;gap:4px;align-items:center"><input data-s="${e.id}" data-f="note" value="${note.replace(/"/g,'&quot;')}" placeholder="https://…" style="text-align:left;font-family:inherit">${isUrl(note)?`<a href="${note.replace(/"/g,'&quot;')}" target="_blank" rel="noopener" title="Открыть" style="text-decoration:none;flex-shrink:0">↗</a>`:''}</div></td>`+
         `<td><button class="btn btn-r btn-sm" onclick="delEmp('${e.id}')">✕</button></td></tr>`;});
   });
-  const cBase=D.employees.reduce((a,e)=>a+(+e.base||0),0),cBonus=D.employees.reduce((a,e)=>a+(+e.bonus||0),0);
-  h+=`<tr class="bold"><td colspan="2">ВСЯ КОМПАНИЯ · ${D.employees.length} чел.</td><td>${fUsd(cBase)}</td><td>${fUsd(cBonus)}</td><td>${fUsd(cBase+cBonus)}</td><td colspan="4">100%</td></tr>`;
+  const cTot=D.employees.reduce((a,e)=>a+empTotal(e),0);
+  const cEtsy=D.employees.reduce((a,e)=>a+empTotal(e)*((+e.etsyPct||0)/100),0),cEcom=D.employees.reduce((a,e)=>a+empTotal(e)*((+e.ecomPct||0)/100),0);
+  h+=`<tr class="bold"><td colspan="2">ВСЯ КОМПАНИЯ · ${D.employees.length} чел.</td><td>${fUsd(cTot)}</td><td></td><td>${fUsd(cEtsy)}</td><td></td><td>${fUsd(cEcom)}</td><td colspan="2">100%</td></tr>`;
   h+=`</tbody></table></div><datalist id="deptlist">${deps.map(d=>`<option value="${d}">`).join('')}</datalist>`;
   // сводка по направлениям
   let etsyPay=0,ecomPay=0;D.employees.forEach(e=>{const t=empTotal(e);etsyPay+=t*((+e.etsyPct||0)/100);ecomPay+=t*((+e.ecomPct||0)/100);});
   h+=`<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem">
     <div class="kpi" style="flex:1;min-width:180px"><div class="kpi-l"><span class="kl">ФОТ → ${dirName('etsy')}</span><span class="kv b">${fUsd(etsyPay)}</span></div><div class="ks">${compTotal>0?Math.round(etsyPay/compTotal*100):0}%</div></div>
     <div class="kpi" style="flex:1;min-width:180px"><div class="kpi-l"><span class="kl">ФОТ → ${dirName('ecom')}</span><span class="kv p">${fUsd(ecomPay)}</span></div><div class="ks">${compTotal>0?Math.round(ecomPay/compTotal*100):0}%</div></div>
-    <div class="kpi" style="flex:1;min-width:180px"><div class="kpi-l"><span class="kl">ФОТ всего (ставка+бонус)</span><span class="kv">${fUsd(cBase+cBonus)}</span></div><div class="ks">${D.employees.length} чел.</div></div>
+    <div class="kpi" style="flex:1;min-width:180px"><div class="kpi-l"><span class="kl">ФОТ всего</span><span class="kv">${fUsd(cTot)}</span></div><div class="ks">${D.employees.length} чел.</div></div>
   </div>`;
   document.getElementById('staff-table').innerHTML=h;
   document.querySelectorAll('#staff-table input[data-s]').forEach(inp=>inp.onchange=()=>{const e=D.employees.find(x=>x.id===inp.dataset.s);if(!e)return;const f=inp.dataset.f;
-    if(['base','bonus','etsyPct','ecomPct'].includes(f)){e[f]=+inp.value||0;if(f==='base'||f==='bonus')e.salary=(+e.base||0)+(+e.bonus||0);}else e[f]=inp.value;
+    if(f==='zp'){e.base=+inp.value||0;e.bonus=0;e.salary=e.base;}
+    else if(['etsyPct','ecomPct'].includes(f))e[f]=+inp.value||0;
+    else e[f]=inp.value;
     autoSave();rStaff();});
+  // контроль ФОТ «не превышать» — на этой же странице
+  const ms=document.getElementById('al-month');if(ms){ms.innerHTML=MN.map((mm,i)=>`<option value="${i}" ${i===alMonth?'selected':''}>${mm} ${YEAR}</option>`).join('');ms.onchange=()=>{alMonth=+ms.value;rAlControl();};}
+  rAlControl();
 }
 function rAlControl(){
   const m=alMonth;const cm=consMonth(YEAR,m);const rev=cm.rev,exp=cm.cost;
@@ -546,48 +700,185 @@ const YP_DEF={
 function ypBlank(){return{leads:z12(),c1:z12(),c2:z12(),conv:z12(),check:z12(),adv:z12()};}
 function yp2(year,chId){const s=D.yp2[year]||(D.yp2[year]={});if(!s[chId]){const d=YP_DEF[chId];s[chId]={plan:ypBlank(),fact:ypBlank(),fot:d.fot,ovhd:d.ovhd,margin:d.margin};}return s[chId];}
 function seedYp2(){if(D.meta.yp2seeded)return false;for(const ch of YP_CH){const o=yp2(2026,ch.id);const d=YP_DEF[ch.id];const p=o.plan;p.leads[5]=d.leads;p.check[5]=d.check;p.adv[5]=d.adv;if(ch.type==='etsy2'){p.c1[5]=d.c1;p.c2[5]=d.c2;}else p.conv[5]=d.conv;}D.meta.yp2seeded=true;return true;}
-function ypCalc(ch,year,month,mode){const o=yp2(year,ch.id),p=o[mode];const leads=+p.leads[month]||0,check=+p.check[month]||0,adv=+p.adv[month]||0,fot=+o.fot||0,ovhd=+o.ovhd||0,margin=(+o.margin||0)/100;let self=0,after=0,orders=0;if(ch.type==='etsy2'){const c1=(+p.c1[month]||0)/100,c2=(+p.c2[month]||0)/100;self=Math.round(leads*c1);after=Math.round((leads-self)*c2);orders=self+after;}else{const conv=(+p.conv[month]||0)/100;orders=Math.round(leads*conv);}const rev=orders*check,marginAmt=rev*margin,costs=adv+fot+ovhd,profit=marginAmt-costs;return{leads,self,after,orders,rev,marginAmt,costs,profit};}
-function rYearplan(){
-  rSeg('yp-mode',ypMode,v=>{ypMode=v;rYearplan();},[['plan','План'],['fact','Факт']]);
-  document.getElementById('yp-months').innerHTML=MN.map((m,i)=>`<button class="mb ${i===ypMonth?'act':''} ${i===CM&&YEAR===CYR?'cur':''}" onclick="ypMonth=${i};rYearplan()">${m}</button>`).join('');
-  const yr=YEAR,m=ypMonth,mode=ypMode;
-  const sum={leads:0,orders:0,rev:0,marginAmt:0,costs:0,profit:0};
-  YP_CH.forEach(ch=>{const c=ypCalc(ch,yr,m,mode);sum.leads+=c.leads;sum.orders+=c.orders;sum.rev+=c.rev;sum.marginAmt+=c.marginAmt;sum.costs+=c.costs;sum.profit+=c.profit;});
+// маркетинг направления за месяц (строки разные у etsy/ecom)
+function dirMkt(dir,y,m){return Math.abs(pnlVal(dir,y,m,'Маркетинг Etsy'))+Math.abs(pnlVal(dir,y,m,'Маркетинг и продвижение'));}
+// ставки из ФАКТА P&L по направлению: маржа = (Выручка−Производство)/Выручка; накладные = (Затраты−Производство−Маркетинг−ФОТ)/Выручка
+function dirFactRates(dir){
+  const g=D.pnl[dir];let rev=0,prod=0,mk=0,fot=0,zat=0,n=0;
+  if(g)gridYears(g).forEach(y=>{for(let m=0;m<12;m++){const r=pnlVal(dir,y,m,'Выручка');if(r<=0)continue;n++;rev+=r;prod+=Math.abs(pnlVal(dir,y,m,'Производство'));fot+=Math.abs(pnlVal(dir,y,m,'ФОТ'));zat+=Math.abs(pnlVal(dir,y,m,'Затраты'));mk+=dirMkt(dir,y,m);}});
+  if(rev<=0)return{margin:.6,ohRate:0,have:false,n:0};
+  return{margin:(rev-prod)/rev,ohRate:Math.max(0,(zat-prod-mk-fot)/rev),have:true,n};
+}
+// маржа направления: ручное переопределение (D.ypRates) или авто из факта
+function dirMargin(dir){const o=D.ypRates&&D.ypRates[dir];if(o&&o.margin!==''&&o.margin!=null&&isFinite(+o.margin))return (+o.margin)/100;return dirFactRates(dir).margin;}
+// «сырой» расчёт канала (без ФОТ — он распределяется на уровне направления)
+function ypCalc(ch,year,month,mode){
+  const o=yp2(year,ch.id),p=o[mode];
+  const leads=+p.leads[month]||0,check=+p.check[month]||0,adv=+p.adv[month]||0;
+  let self=0,after=0,orders=0;
+  if(ch.type==='etsy2'){const c1=(+p.c1[month]||0)/100,c2=(+p.c2[month]||0)/100;self=Math.round(leads*c1);after=Math.round((leads-self)*c2);orders=self+after;}
+  else{const conv=(+p.conv[month]||0)/100;orders=Math.round(leads*conv);}
+  const rev=orders*check,margin=dirMargin(ch.dir),marginAmt=rev*margin,ovhd=dirFactRates(ch.dir).ohRate*rev;
+  return{leads,self,after,orders,rev,marginAmt,ovhd,adv,margin};
+}
+// полный расчёт месяца: ФОТ направления (из Персонала) делится между каналами пропорц. выручке
+function ypComputeMonth(year,month,mode){
+  const raw={};YP_CH.forEach(ch=>raw[ch.id]=ypCalc(ch,year,month,mode));
+  const dirRev={etsy:0,ecom:0};YP_CH.forEach(ch=>dirRev[ch.dir]+=raw[ch.id].rev);
+  const dirPay={etsy:payroll('etsy',year,month),ecom:payroll('ecom',year,month)};
+  const res={};YP_CH.forEach(ch=>{const r=raw[ch.id];const fot=dirRev[ch.dir]>0?dirPay[ch.dir]*(r.rev/dirRev[ch.dir]):0;const costs=r.adv+fot+r.ovhd;res[ch.id]={...r,fot,costs,profit:r.marginAmt-costs};});
+  res.__dirPay=dirPay;res.__dirRev=dirRev;return res;
+}
+function ypTotals(year,month,mode){const r=ypComputeMonth(year,month,mode);let o={leads:0,orders:0,rev:0,marginAmt:0,profit:0,costs:0,fot:0};YP_CH.forEach(ch=>{const c=r[ch.id];o.leads+=c.leads;o.orders+=c.orders;o.rev+=c.rev;o.marginAmt+=c.marginAmt;o.profit+=c.profit;o.costs+=c.costs;o.fot+=c.fot;});return o;}
+// понедельный темп (pacing) поверх канальной модели
+function ypPacingCard(yr,m){
+  const plan=ypTotals(yr,m,'plan'),fact=ypTotals(yr,m,'fact');
+  const dim=new Date(yr,m+1,0).getDate();const wk=dim/7;
+  const isCur=(yr===CYR&&m===CM);
   const tg=(l,v,c)=>`<div class="kpi"><div class="kpi-l"><span class="kl">${l}</span><span class="kv ${c||''}">${v}</span></div></div>`;
-  let h=`<div class="card"><div class="ctitle"><span class="l">Итого по всем каналам · ${MN[m]} ${yr} · ${mode==='plan'?'ПЛАН':'ФАКТ'}</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.9rem">`+
+  let pace='';
+  if(isCur&&plan.rev>0){
+    const elapsed=Math.min(NOW.getDate(),dim),frac=elapsed/dim;
+    const tgt=plan.rev*frac,diff=fact.rev-tgt,diffPc=tgt>0?Math.round(diff/tgt*100):0;
+    const proj=frac>0?fact.rev/frac:0,projPc=plan.rev>0?Math.round(proj/plan.rev*100):0;const ahead=diff>=0;
+    pace=`<div class="ypres" style="border-top:1px dashed var(--brd2);margin-top:.85rem">
+      <div class="mini">Прошло месяца<b>${Math.round(frac*100)}% · ${elapsed}/${dim} дн</b></div>
+      <div class="mini">Цель к сегодня<b>${fUsd(tgt)}</b></div>
+      <div class="mini">Факт внесён<b>${fUsd(fact.rev)}</b></div>
+      <div class="mini">${ahead?'Опережение':'Отставание'}<b class="${ahead?'posv':'negv'}">${diff>=0?'+':''}${fUsd(diff)} · ${diffPc>=0?'+':''}${diffPc}%</b></div>
+      <div class="mini">Прогноз на месяц<b class="${projPc>=100?'posv':'negv'}">${fUsd(proj)} · ${projPc}% плана</b></div>
+    </div>`;
+  }
+  return `<div class="card ca"><div class="ctitle"><span class="l"><span class="dot a"></span>Понедельный темп · ${MN[m]} ${yr}</span>${isCur?'<span class="pill s">текущий месяц</span>':''}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.9rem">
+      ${tg('Недель в месяце',wk.toFixed(1),'b')}${tg('Нужно выручки / нед',fUsd(plan.rev/wk),'g')}${tg('Нужно покупок / нед',Math.round(plan.orders/wk),'t')}${tg('План месяца',fUsd(plan.rev),'b')}
+    </div>${pace}
+    <p class="muted" style="margin-top:10px;font-size:11px">Недельный темп = план месяца ÷ число недель (${dim} дн ≈ ${wk.toFixed(1)} нед). ${isCur?'«Факт внесён» — суммарный Факт по каналам за месяц; прогноз линейно экстраполирует текущий темп на весь месяц.':'Опережение/отставание и прогноз показываются для текущего месяца — внесите Факт по каналам.'}</p></div>`;
+}
+function rYearplan(){
+  rSeg('yp-mode',ypMode,v=>{ypMode=v;rYearplan();},[['plan','План'],['fact','Факт'],['cmp','Сравнение']]);
+  document.getElementById('yp-months').innerHTML=MN.map((m,i)=>`<button class="mb ${i===ypMonth?'act':''} ${i===CM&&YEAR===CYR?'cur':''}" onclick="ypMonth=${i};rYearplan()">${m}</button>`).join('');
+  const yr=YEAR,m=ypMonth;
+  if(ypMode==='cmp'){document.getElementById('yp-body').innerHTML=lockBar(yr)+ypCompareView(yr,m);return;}
+  const mode=ypMode;
+  const res=ypComputeMonth(yr,m,mode);const sum=ypTotals(yr,m,mode);
+  const tg=(l,v,c)=>`<div class="kpi" style="border-left:3px solid var(--${cssColor(c||'b')})"><div class="kpi-l"><span class="kl">${l}</span><span class="kv ${c||''}" style="font-size:23px">${v}</span></div></div>`;
+  let h=`<div class="card cb" style="border:1.5px solid var(--brd2);box-shadow:0 4px 18px rgba(22,24,18,.07)"><div class="ctitle" style="font-size:13px"><span class="l" style="font-size:13px"><span class="dot b"></span>ИТОГО ПО ВСЕМ КАНАЛАМ · ${MN[m]} ${yr}</span><span class="pill ${mode==='plan'?'s':'e'}">${mode==='plan'?'ПЛАН':'ФАКТ'}</span></div><div class="g3" style="gap:.8rem">`+
     tg('Всего лидов',Math.round(sum.leads),'b')+tg('Всего покупок',Math.round(sum.orders),'t')+tg('Выручка',fUsd(sum.rev),'g')+
     tg('Маржа ср.',(sum.rev>0?Math.round(sum.marginAmt/sum.rev*100):0)+'%','p')+tg('Расходы',fUsd(sum.costs),'r')+tg('Чистая прибыль',fUsd(sum.profit),sum.profit>=0?'g':'r')+
     `</div></div>`;
+  h+=ypPacingCard(yr,m);
   ['etsy','ecom'].forEach(dir=>{
-    h+=`<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin:.4rem 0 .6rem">${dir==='etsy'?'Etsy — направления':'E-com — каналы'}</div>`;
-    const sub={orders:0,rev:0,costs:0,profit:0};
-    YP_CH.filter(c=>c.dir===dir).forEach(ch=>{const c=ypCalc(ch,yr,m,mode);sub.orders+=c.orders;sub.rev+=c.rev;sub.costs+=c.costs;sub.profit+=c.profit;h+=ypCard(ch,yr,m,mode,c);});
-    h+=`<div class="card ${dir==='etsy'?'cb':'ct'}" style="display:flex;gap:1.6rem;flex-wrap:wrap;align-items:center;padding:.85rem 1.2rem"><b style="font-size:11px;text-transform:uppercase;color:var(--text2)">Итого ${dir==='etsy'?'Etsy':'E-com'}</b><span class="muted">Покупок: <b>${Math.round(sub.orders)}</b></span><span class="muted">Выручка: <b>${fUsd(sub.rev)}</b></span><span class="muted">Расходы: <b>${fUsd(sub.costs)}</b></span><span class="muted">Чистая прибыль: <b class="${sub.profit>=0?'posv':'negv'}">${fUsd(sub.profit)}</b></span></div>`;
+    const autoM=Math.round(dirFactRates(dir).margin*100),ov=(D.ypRates&&D.ypRates[dir]&&D.ypRates[dir].margin!=null)?D.ypRates[dir].margin:'';
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:.5rem 0 .6rem"><span style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">${dir==='etsy'?'Etsy — направления':'E-com — каналы'}</span><span class="muted" style="font-size:11px;display:flex;align-items:center;gap:6px">Маржа направления: <input data-dirmargin="${dir}" value="${ov}" placeholder="${autoM}" inputmode="decimal" style="width:60px;text-align:right;padding:5px 7px"> % <span style="color:var(--text3)">авто ${autoM}% из факта</span></span></div>`;
+    const sub={orders:0,rev:0,costs:0,profit:0,fot:0};
+    YP_CH.filter(c=>c.dir===dir).forEach(ch=>{const c=res[ch.id];sub.orders+=c.orders;sub.rev+=c.rev;sub.costs+=c.costs;sub.profit+=c.profit;sub.fot+=c.fot;h+=ypCard(ch,yr,m,mode,c);});
+    h+=`<div class="card ${dir==='etsy'?'cb':'ct'}" style="display:flex;gap:1.4rem;flex-wrap:wrap;align-items:center;padding:.85rem 1.2rem"><b style="font-size:11px;text-transform:uppercase;color:var(--text2)">Итого ${dir==='etsy'?'Etsy':'E-com'}</b><span class="muted">Покупок: <b>${Math.round(sub.orders)}</b></span><span class="muted">Выручка: <b>${fUsd(sub.rev)}</b></span><span class="muted">ФОТ: <b>${fUsd(sub.fot)}</b></span><span class="muted">Расходы: <b>${fUsd(sub.costs)}</b></span><span class="muted">Чистая прибыль: <b class="${sub.profit>=0?'posv':'negv'}">${fUsd(sub.profit)}</b></span></div>`;
   });
   document.getElementById('yp-body').innerHTML=lockBar(yr)+h;
   document.querySelectorAll('#yp-body input[data-p]').forEach(inp=>inp.onchange=()=>{const o=yp2(yr,inp.dataset.ch);o[mode][inp.dataset.p][m]=+inp.value||0;autoSave();rYearplan();});
-  document.querySelectorAll('#yp-body input[data-fx]').forEach(inp=>inp.onchange=()=>{const o=yp2(yr,inp.dataset.ch);o[inp.dataset.fx]=+inp.value||0;autoSave();rYearplan();});
+  document.querySelectorAll('#yp-body input[data-dirmargin]').forEach(inp=>inp.onchange=()=>{const dir=inp.dataset.dirmargin;if(!D.ypRates)D.ypRates={};if(!D.ypRates[dir])D.ypRates[dir]={};const v=inp.value.trim();if(v==='')delete D.ypRates[dir].margin;else D.ypRates[dir].margin=+v;autoSave();rYearplan();});
   disableIfLocked('yp-body',yr);
 }
 function ypCard(ch,yr,m,mode,c){
   const o=yp2(yr,ch.id),p=o[mode];
   const inp=(fld,val,ph)=>`<div class="fg"><label class="lbl">${ph}</label><input data-ch="${ch.id}" data-p="${fld}" value="${val||''}" inputmode="decimal"></div>`;
-  const fxi=(fld,val,ph)=>`<div class="fg"><label class="lbl">${ph}</label><input data-ch="${ch.id}" data-fx="${fld}" value="${val||''}" inputmode="decimal"></div>`;
   let params=ch.type==='etsy2'
     ? inp('leads',p.leads[m],'Лиды')+inp('c1',p.c1[m],'Конв.самост,%')+inp('c2',p.c2[m],'Конв.продаж,%')+inp('check',p.check[m],'Чек,$')+inp('adv',p.adv[m],'Реклама,$')
     : inp('leads',p.leads[m],'Лиды')+inp('conv',p.conv[m],'Конверсия,%')+inp('check',p.check[m],'Чек,$')+inp('adv',p.adv[m],'Реклама,$');
-  params+=fxi('margin',o.margin,'Маржа,%')+fxi('fot',o.fot,'ФОТ,$')+fxi('ovhd',o.ovhd,'Общепр.,$');
   let res=ch.type==='etsy2'?`<div class="mini">Самост. покупок<b>${c.self}</b></div><div class="mini">После продаж<b>${c.after}</b></div>`:'';
-  res+=`<div class="mini">Всего покупок<b>${c.orders}</b></div><div class="mini">Выручка<b>${fUsd(c.rev)}</b></div><div class="mini">Маржа $<b>${fUsd(c.marginAmt)}</b></div><div class="mini">Расходы<b>${fUsd(c.costs)}</b></div><div class="mini">Чистая прибыль<b class="${c.profit>=0?'posv':'negv'}">${fUsd(c.profit)}</b></div>`;
-  return `<div class="card ${ch.cls}"><div class="ctitle"><span class="l">${ch.name}</span><span class="kpct ${c.profit>=0?'pos':'neg'}">${fUsd(c.profit)}</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px">${params}</div><div class="ypres">${res}</div></div>`;
+  res+=`<div class="mini">Всего покупок<b>${c.orders}</b></div><div class="mini">Выручка<b>${fUsd(c.rev)}</b></div><div class="mini">Маржа ${Math.round(c.margin*100)}%<b>${fUsd(c.marginAmt)}</b></div><div class="mini">Реклама<b>${fUsd(c.adv)}</b></div><div class="mini">ФОТ <span style="color:var(--text3)">авто</span><b>${fUsd(c.fot)}</b></div><div class="mini">Общепр. <span style="color:var(--text3)">авто</span><b>${fUsd(c.ovhd)}</b></div><div class="mini">Чистая прибыль<b class="${c.profit>=0?'posv':'negv'}">${fUsd(c.profit)}</b></div>`;
+  return `<div class="card ${ch.cls}"><div class="ctitle"><span class="l">${ch.name}</span><span class="kpct ${c.profit>=0?'pos':'neg'}">${fUsd(c.profit)}</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px">${params}</div><div class="ypres">${res}</div><p class="muted" style="font-size:10px;margin-top:7px">ФОТ тянется из «Персонала» (доля направления × выручка канала). Общепр. — авто из факта P&L. Маржа — авто/переопределяемая по направлению.</p></div>`;
+}
+/* ═══ ПЛАН ГОДА · СРАВНЕНИЕ ПЛАН/ФАКТ ═══ */
+function ypCompareView(yr,m){
+  const plan=ypComputeMonth(yr,m,'plan'),fact=ypComputeMonth(yr,m,'fact');
+  const pT=ypTotals(yr,m,'plan'),fT=ypTotals(yr,m,'fact');
+  const tg=(l,v,c)=>`<div class="kpi" style="border-left:3px solid var(--${cssColor(c||'b')})"><div class="kpi-l"><span class="kl">${l}</span><span class="kv ${c||''}" style="font-size:20px">${v}</span></div></div>`;
+  const dpc=(pl,fa)=>pl!==0?Math.round((fa-pl)/Math.abs(pl)*100):(fa!==0?null:0);
+  const row=(label,pl,fa,money,goodHigher)=>{const d=fa-pl,pc=dpc(pl,fa),good=goodHigher?d>=0:d<=0,f=money?fUsd:(x=>Math.round(x));return `<tr><td>${label}</td><td>${f(pl)}</td><td>${f(fa)}</td><td class="${good?'posv':'negv'}">${d>=0?'+':''}${f(d)}</td><td class="${good?'posv':'negv'}">${pc==null?'—':(pc>=0?'+':'')+pc+'%'}</td></tr>`;};
+  // вердикт по выручке и прибыли
+  const revPc=dpc(pT.rev,fT.rev),profPc=dpc(pT.profit,fT.profit);
+  let verdict='Внесите План и Факт по каналам, чтобы увидеть расхождение.';
+  if(pT.rev>0&&fT.rev>0){const rp=fT.rev-pT.rev;verdict=rp>=0?`Факт выручки <b>выше плана</b> на ${fUsd(rp)} (${revPc>=0?'+':''}${revPc}%) — план был <b>пессимистичным</b> (недооценили).`:`Факт выручки <b>ниже плана</b> на ${fUsd(-rp)} (${revPc}%) — план был <b>оптимистичным</b> (переоценили).`;}
+  let h=`<div class="card cb" style="border:1.5px solid var(--brd2);box-shadow:0 4px 18px rgba(22,24,18,.07)"><div class="ctitle" style="font-size:13px"><span class="l" style="font-size:13px"><span class="dot b"></span>ПЛАН vs ФАКТ · ${MN[m]} ${yr}</span></div><div class="g3" style="gap:.8rem">`+
+    tg('Выручка · план',fUsd(pT.rev),'b')+tg('Выручка · факт',fUsd(fT.rev),'g')+tg('Δ выручки',`${fT.rev-pT.rev>=0?'+':''}${fUsd(fT.rev-pT.rev)}`,fT.rev>=pT.rev?'g':'r')+
+    tg('Прибыль · план',fUsd(pT.profit),'b')+tg('Прибыль · факт',fUsd(fT.profit),fT.profit>=0?'g':'r')+tg('Δ прибыли',`${fT.profit-pT.profit>=0?'+':''}${fUsd(fT.profit-pT.profit)}`,fT.profit>=pT.profit?'g':'r')+
+    `</div><p class="muted" style="margin-top:10px">${verdict}</p></div>`;
+  h+=`<div class="card"><div class="ctitle"><span class="l">Расхождение по каналам</span></div><div class="tw"><table class="tbl"><thead><tr><th>Канал · показатель</th><th>План</th><th>Факт</th><th>Δ</th><th>Δ %</th></tr></thead><tbody>`;
+  YP_CH.forEach(ch=>{const cp=plan[ch.id],cf=fact[ch.id];
+    h+=`<tr class="deprow"><td colspan="5">${ch.name}</td></tr>`+
+       row('Покупки',cp.orders,cf.orders,false,true)+
+       row('Выручка',cp.rev,cf.rev,true,true)+
+       row('Чистая прибыль',cp.profit,cf.profit,true,true);});
+  h+=`<tr class="bold"><td colspan="5">ИТОГО ПО ВСЕМ КАНАЛАМ</td></tr>`+
+     row('Покупки',pT.orders,fT.orders,false,true)+
+     row('Выручка',pT.rev,fT.rev,true,true)+
+     row('Расходы',pT.costs,fT.costs,true,false)+
+     row('Чистая прибыль',pT.profit,fT.profit,true,true);
+  h+=`</tbody></table></div><p class="muted" style="margin-top:8px">«Δ» = Факт − План. Зелёный — лучше плана (для расходов «лучше» = меньше). Помогает увидеть, где были оптимистичны (факт ниже) или пессимистичны (факт выше). ФОТ и общепроизв. считаются авто, маржа — из факта/переопределения.</p></div>`;
+  return h;
+}
+
+/* ═══ ЦЕНЫ (юнит-экономика по размерам) ═══ */
+async function loadPrices(){try{const r=await fetch('prices-data.json?cb='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const np=await r.json();if(D.prices){['pch','hm'].forEach(k=>{if(D.prices[k]&&np[k])np[k].rows.forEach((row,i)=>{const old=D.prices[k].rows[i];if(old&&old.priceNew!=null)row.priceNew=old.priceNew;});});}D.prices=np;await persist();rPrices();toast('Цены загружены ✓');}catch{toast('prices-data.json не найден рядом с index.html','err');}}
+const PC_COL={'Дизайнер':'#6f5ae0','Печать':'#3f7ad1','Художник':'#cf8500','Справка':'#0d9488','Доставка':'#5b9bd5','Пошлина':'#d6336c','НП':'#94a3b8','Комиссии':'#e0603a','ФОТ сдельный':'#b06ab3','Маржа':'#1f9d6b'};
+function pcEff(r){const p=r.priceNew!=null?+r.priceNew:+r.price;const cogs=+r.cogs||0;const mP=p-cogs;return{p,cogs,mP,mp:p>0?mP/p:0,edited:r.priceNew!=null&&+r.priceNew!==+r.price};}
+function pcThr(tab,fld,def){const o=D.priceThr&&D.priceThr[tab];return (o&&o[fld]!=null&&o[fld]!=='')?+o[fld]:def;}
+function pcCls(mp,tab){const g=pcThr(tab,'green',50)/100,r=pcThr(tab,'red',45)/100;return mp>=g?'ghi':(mp>=r?'ahi':'rhi');}  // ≥green 🟢 · ≥red 🟡 · <red 🔴
+function pcResetPrices(){const ds=D.prices&&D.prices[pricesTab];if(!ds)return;ds.rows.forEach(r=>delete r.priceNew);autoSave();rPrices();}
+function rPrices(){
+  const body=document.getElementById('pc-body');
+  rSeg('pc-seg',pricesTab,v=>{pricesTab=v;rPrices();},[['pch','ПЧ'],['hm','ХМ']]);
+  if(!D.prices||!D.prices[pricesTab]||!(D.prices[pricesTab].rows||[]).length){
+    body.innerHTML=`<div class="card"><div class="ctitle"><span class="l">Цены не загружены</span></div><p class="muted" style="margin-bottom:12px">Импортируйте юнит-экономику из локального файла <b>prices-data.json</b> (лежит рядом с index.html). Данные сохранятся в зашифрованном виде.</p><button class="btn btn-pr" onclick="loadPrices()">⟳ Импортировать цены</button></div>`;
+    return;
+  }
+  const ds=D.prices[pricesTab],rows=ds.rows;const idxOf=new Map(rows.map((r,i)=>[r,i]));
+  const gT=pcThr(pricesTab,'green',50)/100,rT=pcThr(pricesTab,'red',45)/100,gP=Math.round(gT*100),rP=Math.round(rT*100);
+  const effs=rows.map(pcEff);const avgM=effs.reduce((a,e)=>a+e.mp,0)/effs.length;
+  const green=effs.filter(e=>e.mp>=gT).length,yellow=effs.filter(e=>e.mp>=rT&&e.mp<gT).length,red=effs.filter(e=>e.mp<rT).length;
+  const editedN=effs.filter(e=>e.edited).length;
+  let h=`<div class="g4">`+
+    tile('Позиций',rows.length,'b')+
+    tile('Средняя маржа',Math.round(avgM*100)+'%',avgM>=gT?'g':(avgM>=rT?'a':'r'))+
+    tile('🟢 ≥'+gP+'%',green+' / '+rows.length,'g')+
+    tile('🟡 '+rP+'–'+gP+'% · 🔴 <'+rP+'%',yellow+' · '+red,red?'r':(yellow?'a':'g'))+`</div>`;
+  h+=`<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:.85rem 1.2rem"><span class="muted">${pricesTab==='pch'?'ПЧ (печать)':'ХМ (хендмейд)'} · обновлено: <b>${D.prices.updated||'—'}</b>${editedN?` · <b style="color:var(--amber3)">пересмотрено: ${editedN}</b>`:''}</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ${pcEdit?'btn-pr':'btn-gh'} btn-sm" onclick="pcEdit=!pcEdit;rPrices()">✏️ Пересмотр цен${pcEdit?' · вкл':''}</button>${editedN?`<button class="btn btn-r btn-sm" onclick="pcResetPrices()">↺ Сбросить (${editedN})</button>`:''}<button class="btn btn-gh btn-sm" onclick="pcBreak=!pcBreak;rPrices()">${pcBreak?'✓ ':''}Разбивка себестоимости</button></span></div>`;
+  if(pcEdit)h+=`<div class="okbox" style="margin-bottom:1rem">✏️ Режим пересмотра: меняй <b>цену</b> в таблице — маржа и цвет пересчитаются сразу. Себестоимость не меняется. «Сбросить» вернёт исходные цены.</div>`;
+  const bySize={};rows.forEach(r=>{(bySize[r.size]=bySize[r.size]||[]).push(r);});
+  const area=s=>{const m=(s||'').match(/(\d+)\D+(\d+)/);return m?(+m[1])*(+m[2]):0;};
+  const sizes=Object.keys(bySize).sort((a,b)=>area(a)-area(b));
+  const compKeys=pricesTab==='pch'?['Дизайнер','Печать','Художник','Справка','Доставка','Пошлина','НП','Комиссии','ФОТ сдельный']:['Дизайнер','Художник','Справка','Доставка','Пошлина','НП','Комиссии','ФОТ сдельный'];
+  sizes.forEach((sz,si)=>{
+    const list=bySize[sz];const ms=list.map(r=>pcEff(r).mp);const mmin=Math.min(...ms),mmax=Math.max(...ms);
+    h+=`<details class="card" style="padding:0;margin-bottom:.8rem" ${(si===0||pcEdit)?'open':''}><summary style="padding:.9rem 1.2rem;cursor:pointer;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:10px"><span>${sz} <span class="muted" style="font-weight:500">${list[0].sizeIn||''} · ${list.length} поз.</span></span><span class="kpct ${mmin>=gT?'pos':(mmin>=rT?'':'neg')}" ${mmin>=rT&&mmin<gT?'style="background:rgba(207,133,0,.14);color:#9a6a00"':''}>маржа ${Math.round(mmin*100)}–${Math.round(mmax*100)}%</span></summary>`;
+    h+=`<div class="tw" style="border:none;border-top:1px solid var(--brd)"><table class="tbl" style="min-width:680px"><thead><tr><th>Фигуры</th><th>Рама / доставка</th><th>Цена</th><th>Себест.</th><th>Маржа $</th><th>Маржа %</th></tr></thead><tbody>`;
+    list.forEach(r=>{const e=pcEff(r);const idx=idxOf.get(r);
+      const priceCell=pcEdit?`<input data-pi="${idx}" value="${Math.round(e.p)}" inputmode="decimal" style="min-width:74px;font-weight:700">`:`<b>${fUsd(e.p)}</b>${e.edited?` <span style="color:var(--text3);font-size:10px">было ${fUsd(r.price)}</span>`:''}`;
+      const mTip=`Маржа = (цена − себестоимость) ÷ цена\n(${fUsd(e.p)} − ${fUsd(e.cogs)}) ÷ ${fUsd(e.p)} = ${Math.round(e.mp*100)}%\n🟢 ≥${gP}% · 🟡 ${rP}–${gP}% · 🔴 <${rP}%`;
+      h+=`<tr><td>${r.fig}</td><td style="font-family:inherit;color:var(--text2)">${r.frame||''}${r.ship?' · '+r.ship:''}</td><td>${priceCell}</td><td>${fUsd(e.cogs)}</td><td>${fUsd(e.mP)}</td><td class="${pcCls(e.mp,pricesTab)}" data-tip="${mTip.replace(/"/g,'&quot;')}">${Math.round(e.mp*100)}%</td></tr>`;
+      if(pcBreak&&r.comp){
+        const segs=compKeys.filter(k=>r.comp[k]!=null&&r.comp[k]>0).map(k=>({k,v:+r.comp[k]})).concat([{k:'Маржа',v:Math.max(0,e.mP)}]);
+        const bar=segs.map(s=>`<div title="${s.k}: ${fUsd(s.v)} · ${Math.round(s.v/e.p*100)}%" style="width:${(s.v/e.p*100).toFixed(2)}%;background:${PC_COL[s.k]||'#ccc'}"></div>`).join('');
+        const leg=segs.map(s=>`<span class="it"><i style="background:${PC_COL[s.k]||'#ccc'}"></i>${s.k} <b style="color:var(--text)">${fUsd(s.v)}</b> · ${Math.round(s.v/e.p*100)}%</span>`).join('');
+        h+=`<tr><td colspan="6" style="background:var(--bg3);padding:9px 12px"><div class="pcbar">${bar}</div><div class="pclegend">${leg}</div></td></tr>`;
+      }
+    });
+    h+=`</tbody></table></div></details>`;
+  });
+  body.innerHTML=h;
+  document.querySelectorAll('#pc-body input[data-pi]').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.pi;const v=inp.value.trim();if(v===''||+v===+ds.rows[i].price)delete ds.rows[i].priceNew;else ds.rows[i].priceNew=+v;autoSave();rPrices();});
 }
 
 /* ═══ ANALYTICS ═══ */
 function yearAgg(year){let rev=0,cost=0,net=0,fot=0,n=0;for(let m=0;m<12;m++){if(!monthClosed(year,m))continue;n++;rev+=consVal(year,m,'Выручка');cost+=Math.abs(consVal(year,m,'Затраты'));net+=consVal(year,m,'Чистая прибыль');fot+=Math.abs(consVal(year,m,'ФОТ'));}return{rev,cost,net,fot,n};}
 function anYears(){const ys=gridYears(D.pnl.cons);return ys.length?ys:[CYR];}
 function rAnalytics(){
-  rSeg('an-seg',anView,v=>{anView=v;rAnalytics();},[['years','Сравнение лет'],['months','Помесячно (по годам)'],['ecom','Инвестпроект E-Com']]);
+  rSeg('an-seg',anView,v=>{anView=v;rAnalytics();},[['years','Сравнение лет'],['months','Помесячно (по годам)'],['struct','Структура затрат'],['dirs','Направления'],['ecom','Инвестпроект E-Com']]);
   if(anView==='months')return rAnMonths();
+  if(anView==='struct')return rAnStruct();
+  if(anView==='dirs')return rAnDirs();
   if(anView==='ecom')return rAnEcom();
   const ys=anYears();const agg={};ys.forEach(y=>agg[y]=yearAgg(y));
   const pct=(a,b)=>b>0?Math.round(a/b*100)+'%':'—';
@@ -600,9 +891,19 @@ function rAnalytics(){
   const lA=prev?ymAgg(last):null,pA=prev?ymAgg(prev):null;
   let h=`<div class="card"><div class="ctitle"><span class="l">Сравнение лет: ${ys.join(' · ')}</span></div>`;
   h+=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Показатель</th>${ys.map(y=>`<th${y===last?' style="color:var(--green)"':''}>${y}${agg[y].n<12?' ('+agg[y].n+' мес)':''}</th>`).join('')}<th>${prev?last+' к '+prev+'*':''}</th></tr></thead><tbody>`;
-  metrics.forEach(m=>{h+=`<tr><td>${m[0]}</td>${ys.map(y=>`<td>${m[1](y)}</td>`).join('')}`;let d='';if(prev&&KEYS[m[0]]){const k=KEYS[m[0]],a=lA[k],b=pA[k];const pc=b!==0?Math.round((a-b)/Math.abs(b)*100):0;d=`<span class="${pc>=0?'posv':'negv'}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td></tr>`;});
+  metrics.forEach(m=>{h+=`<tr><td>${m[0]}</td>${ys.map(y=>`<td>${m[1](y)}</td>`).join('')}`;let d='';if(prev&&KEYS[m[0]]){const k=KEYS[m[0]],a=lA[k],b=pA[k];const pc=b!==0?Math.round((a-b)/Math.abs(b)*100):0;const tip=`${m[0]} · рост за одинаковые месяцы (${lastMonths.map(x=>MN[x]).join(', ')||'—'})\n${last}: ${fUsd(a)}\n${prev}: ${fUsd(b)}\n= ${pc>=0?'+':''}${pc}%`;d=`<span class="${pc>=0?'posv':'negv'}" data-tip="${tip.replace(/"/g,'&quot;')}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td></tr>`;});
   h+=`</tbody></table></div><p class="muted" style="margin-top:8px">Учтены только закрытые месяцы (с внесённой выручкой). <b>*</b> Колонка роста сравнивает <b>одинаковые месяцы</b> (${lastMonths.map(m=>MN[m]).join(', ')||'—'}) ${last} к ${prev||''} — корректно при неполном годе.</p></div>`;
   h+=`<div class="card cb"><div class="ctitle"><span class="l">Выручка / Чистая прибыль по годам</span></div><div class="cw" style="height:360px"><canvas id="an-ch1"></canvas></div></div>`;
+  // ── разрез по направлениям (Etsy / E-Com) ──
+  h+=`<div class="kl" style="margin:.4rem 0 .7rem">Отдельно по направлениям</div>`;
+  const prc=(a,b)=>b>0?Math.round(a/b*100)+'%':'—';
+  D.directions.forEach(d=>{
+    let dys=ys.slice();const dg={};dys.forEach(y=>dg[y]=dirAggY(d.id,y));dys=dys.filter(y=>dg[y].n>0);if(!dys.length)return;
+    const dm=[['Выручка',y=>fUsd(dg[y].rev)],['Затраты',y=>fUsd(dg[y].cost)],['Чистая прибыль',y=>`<span class="${dg[y].net>=0?'posv':'negv'}">${fUsd(dg[y].net)}</span>`],['Рентабельность',y=>prc(dg[y].net,dg[y].rev)],['ФОТ / выручка',y=>prc(dg[y].fot,dg[y].rev)]];
+    h+=`<div class="card ${d.id==='etsy'?'cb':'cp'}"><div class="ctitle"><span class="l">${d.name} · сравнение лет</span></div><div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Показатель</th>${dys.map(y=>`<th>${y}${dg[y].n<12?' ('+dg[y].n+'м)':''}</th>`).join('')}</tr></thead><tbody>`;
+    dm.forEach(mt=>{h+=`<tr><td>${mt[0]}</td>${dys.map(y=>`<td>${mt[1](y)}</td>`).join('')}</tr>`;});
+    h+=`</tbody></table></div></div>`;
+  });
   document.getElementById('an-body').innerHTML=h;
   mkChart('an-ch1','bar',{labels:ys.map(String),datasets:[{label:'Выручка',data:ys.map(y=>Math.round(agg[y].rev)),backgroundColor:'#3f7ad1'},{label:'Чистая прибыль',data:ys.map(y=>Math.round(agg[y].net)),backgroundColor:'#1f9d6b'}]});
 }
@@ -630,13 +931,98 @@ function rAnMonths(){
   h+=`</tr></tbody></table></div><p class="muted" style="margin-top:8px">🟩 Зелёным — месяцы, где «${anMetric.toLowerCase()}» лучше того же месяца прошлого года${lowerBetter?' (для затрат/ФОТ «лучше» = меньше)':''}. Текущий год — <b>${maxY}</b>. Рост (в т.ч. в строке «Итого») считается <b>за одинаковые месяцы</b> — динамика по текущий месяц, полный год с неполным не сравниваем. Прочерк — месяц не закрыт.</p></div>`;
   // ── ГРАФИКИ НА ВСЮ ШИРИНУ, ОДИН ПОД ДРУГИМ ──
   h+=`<div class="card cb"><div class="ctitle"><span class="l">${anMetric}: сравнение каждого месяца по годам (текущий год — зелёный)</span></div><div class="cw" style="height:360px"><canvas id="an-mbar"></canvas></div></div>`;
-  h+=`<div class="card cp"><div class="ctitle"><span class="l">${anMetric}: тренд по месяцам (сезонность, годы наложены)</span></div><div class="cw" style="height:320px"><canvas id="an-mline"></canvas></div></div>`;
+  h+=`<div class="card cp"><div class="ctitle"><span class="l">${anMetric}: коридор прошлых лет (закрашен) и текущий год ${maxY}</span></div><div class="cw" style="height:320px"><canvas id="an-mline"></canvas></div></div>`;
   document.getElementById('an-body').innerHTML=h;
   document.querySelectorAll('#an-metric button').forEach(b=>b.onclick=()=>{anMetric=b.dataset.m;rAnMonths();});
   const barDs=ys.map((y,i)=>({label:String(y),data:Array.from({length:12},(_,m)=>val(y,m)),backgroundColor:col(y,i),borderRadius:3}));
   mkChart('an-mbar','bar',{labels:MN,datasets:barDs});
-  const lineDs=ys.map((y,i)=>({label:String(y),data:Array.from({length:12},(_,m)=>val(y,m)),borderColor:col(y,i),backgroundColor:col(y,i),borderWidth:y===maxY?3:1.5,tension:.3,spanGaps:false}));
-  mkChart('an-mline','line',{labels:MN,datasets:lineDs});
+  // коридор: прошлые годы → закрашенный диапазон min–max, текущий год → линия поверх
+  const histY=ys.filter(y=>y!==maxY);
+  const bmin=[],bmax=[];for(let m=0;m<12;m++){const vs=histY.map(y=>val(y,m)).filter(v=>v!=null);bmin.push(vs.length?Math.min(...vs):null);bmax.push(vs.length?Math.max(...vs):null);}
+  const curLine=Array.from({length:12},(_,m)=>val(maxY,m));
+  const mLineDs=[
+    {label:'мин',data:bmin,borderColor:'rgba(120,125,130,.35)',backgroundColor:'rgba(0,0,0,0)',borderWidth:1,pointRadius:0,fill:false,tension:.3,spanGaps:true},
+    {label:`диапазон ${histY.join('/')}`,data:bmax,borderColor:'rgba(120,125,130,.35)',backgroundColor:'rgba(120,125,130,.18)',borderWidth:1,pointRadius:0,fill:'-1',tension:.3,spanGaps:true},
+    {label:String(maxY),data:curLine,borderColor:'#1f9d6b',backgroundColor:'#1f9d6b',borderWidth:3,pointRadius:4,pointBackgroundColor:'#1f9d6b',tension:.3,spanGaps:false},
+  ];
+  mkChartO('an-mline',{type:'line',data:{labels:MN,datasets:mLineDs},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10,filter:i=>i.text!=='мин'}}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9},callback:v=>'$'+(v/1000).toFixed(0)+'k'}}}}});
+}
+
+/* ═══ ANALYTICS · СТРУКТУРА ЗАТРАТ ПО ГОДАМ ═══ */
+const AN_GROUPS=[
+  {n:'ФОТ',k:'ФОТ',col:'#6f5ae0'},
+  {n:'Производство',k:'Производство',col:'#cf8500'},
+  {n:'Маркетинг',k:'Маркетинг и продвижение',col:'#3f7ad1'},
+  {n:'Комиссии',k:'Комиссии',col:'#0d9488'},
+  {n:'Обучение',k:'Затраты на обучение персонала',col:'#1f9d6b'},
+  {n:'Сопровождение',k:'Сопровождение бизнеса',col:'#d6336c'},
+];
+function mkChartO(id,cfg){const cv=document.getElementById(id);if(!cv||!window.Chart)return;if(_ch[id])_ch[id].destroy();_ch[id]=new Chart(cv,cfg);}
+function rAnStruct(){
+  const ys=anYears();const agg={};
+  ys.forEach(y=>{let rev=0,cost=0,net=0,g={};AN_GROUPS.forEach(x=>g[x.k]=0);
+    for(let m=0;m<12;m++){if(!monthClosed(y,m))continue;rev+=consVal(y,m,'Выручка');cost+=Math.abs(consVal(y,m,'Затраты'));net+=consVal(y,m,'Чистая прибыль');AN_GROUPS.forEach(x=>g[x.k]+=Math.abs(consVal(y,m,x.k)));}
+    const gsum=AN_GROUPS.reduce((a,x)=>a+g[x.k],0);g.__other=Math.max(0,cost-gsum);
+    agg[y]={rev,cost,net,g};});
+  const pr=(v,r)=>r>0?(v/r*100).toFixed(1)+'%':'—';
+  let h=`<div class="card"><div class="ctitle"><span class="l">Структура затрат по годам — $ и доля от выручки</span></div>`;
+  h+=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Статья затрат</th>${ys.map(y=>`<th${y===Math.max(...ys)?' style="color:var(--green)"':''} colspan="2">${y}${agg[y].rev>0&&[...Array(12)].filter((_,m)=>monthClosed(y,m)).length<12?' ('+[...Array(12)].filter((_,m)=>monthClosed(y,m)).length+'м)':''}</th>`).join('')}</tr><tr><th></th>${ys.map(()=>'<th>$</th><th>% выр</th>').join('')}</tr></thead><tbody>`;
+  AN_GROUPS.concat([{n:'Прочее',k:'__other'}]).forEach(x=>{
+    h+=`<tr><td>${x.n}</td>${ys.map(y=>{const v=agg[y].g[x.k];return `<td>${fUsd(v)}</td><td>${pr(v,agg[y].rev)}</td>`;}).join('')}</tr>`;});
+  h+=`<tr class="bold"><td>Затраты всего</td>${ys.map(y=>`<td>${fUsd(agg[y].cost)}</td><td>${pr(agg[y].cost,agg[y].rev)}</td>`).join('')}</tr>`;
+  h+=`<tr class="bold"><td>Выручка</td>${ys.map(y=>`<td>${fUsd(agg[y].rev)}</td><td>100%</td>`).join('')}</tr>`;
+  h+=`<tr class="bold"><td>Чистая прибыль</td>${ys.map(y=>`<td class="${agg[y].net>=0?'posv':'negv'}">${fUsd(agg[y].net)}</td><td>${pr(agg[y].net,agg[y].rev)}</td>`).join('')}</tr>`;
+  h+=`</tbody></table></div><p class="muted" style="margin-top:8px">Учтены только закрытые месяцы. Доля каждой группы затрат от выручки помогает увидеть, что «съедает» прибыль и как меняется структура год к году.</p></div>`;
+  // стек-бар $ по группам
+  h+=`<div class="card cb"><div class="ctitle"><span class="l">Структура затрат ($), стек по группам</span></div><div class="cw" style="height:320px"><canvas id="an-st-bar"></canvas></div></div>`;
+  // тренд коэффициентов
+  h+=`<div class="card cp"><div class="ctitle"><span class="l">Ключевые коэффициенты по годам (% от выручки) — тренд</span></div><div class="cw" style="height:320px"><canvas id="an-st-ratio"></canvas></div></div>`;
+  document.getElementById('an-body').innerHTML=h;
+  const stDs=AN_GROUPS.concat([{n:'Прочее',k:'__other',col:'#94a3b8'}]).map(x=>({label:x.n,data:ys.map(y=>Math.round(agg[y].g[x.k])),backgroundColor:x.col,borderRadius:2}));
+  mkChartO('an-st-bar',{type:'bar',data:{labels:ys.map(String),datasets:stDs},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:11}}},y:{stacked:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9},callback:v=>'$'+(v/1000).toFixed(0)+'k'}}}}});
+  const ratio=(key)=>ys.map(y=>agg[y].rev>0?Math.round(agg[y].g[key]/agg[y].rev*100):0);
+  const rentLine=ys.map(y=>agg[y].rev>0?Math.round(agg[y].net/agg[y].rev*100):0);
+  mkChartO('an-st-ratio',{type:'line',data:{labels:ys.map(String),datasets:[
+    {label:'Рентабельность ЧП',data:rentLine,borderColor:'#1f9d6b',backgroundColor:'#1f9d6b',borderWidth:3,tension:.3},
+    {label:'ФОТ / выручка',data:ratio('ФОТ'),borderColor:'#6f5ae0',backgroundColor:'#6f5ae0',borderWidth:2,tension:.3},
+    {label:'Маркетинг / выручка',data:ratio('Маркетинг и продвижение'),borderColor:'#3f7ad1',backgroundColor:'#3f7ad1',borderWidth:2,tension:.3},
+    {label:'Производство / выручка',data:ratio('Производство'),borderColor:'#cf8500',backgroundColor:'#cf8500',borderWidth:2,tension:.3},
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10}}},scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9},callback:v=>v+'%'}}}}});
+}
+
+/* ═══ ANALYTICS · НАПРАВЛЕНИЯ (Etsy vs E-Com) ═══ */
+function dirAgg(dir,year){let rev=0,cost=0,net=0,fot=0,n=0;for(let m=0;m<12;m++){const r=pnlVal(dir,year,m,'Выручка');if(r<=0)continue;n++;rev+=r;cost+=Math.abs(pnlVal(dir,year,m,'Затраты'));net+=pnlVal(dir,year,m,'Чистая прибыль');fot+=Math.abs(pnlVal(dir,year,m,'ФОТ'));}return{rev,cost,net,fot,n};}
+// агрегат направления с учётом «до появления других направлений»: основное направление (первое) за годы,
+// где у него нет своих данных, но есть консолидированные и нет данных у остальных — берёт всю компанию.
+function dirAggY(dir,year){
+  if(gridYears(D.pnl[dir]).includes(year))return dirAgg(dir,year);
+  if(D.directions.length&&D.directions[0].id===dir&&gridYears(D.pnl.cons).includes(year)){
+    const othersHave=D.directions.slice(1).some(o=>gridYears(D.pnl[o.id]).includes(year)&&dirAgg(o.id,year).rev>0);
+    if(!othersHave){const c=yearAgg(year);return{rev:c.rev,cost:c.cost,net:c.net,fot:c.fot,n:c.n};}
+  }
+  return{rev:0,cost:0,net:0,fot:0,n:0};
+}
+function rAnDirs(){
+  // полный диапазон лет (из консолидированных) — чтобы у Etsy был виден 2024 (до E-Com)
+  const ys=gridYears(D.pnl.cons);
+  const dyOf=d=>ys.map(y=>({y,a:dirAggY(d.id,y)})).filter(x=>x.a.n>0);
+  const pr=(a,b)=>b>0?Math.round(a/b*100)+'%':'—';
+  let h=`<div class="card"><div class="ctitle"><span class="l">Сравнение направлений по годам</span></div><div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Направление · год</th><th>Выручка</th><th>Затраты</th><th>ФОТ</th><th>ФОТ/выр</th><th>Чистая прибыль</th><th>Рентаб.</th><th>Мес</th></tr></thead><tbody>`;
+  D.directions.forEach(d=>{
+    h+=`<tr class="deprow"><td colspan="8">${d.name}</td></tr>`;
+    dyOf(d).forEach(({y,a})=>{
+      h+=`<tr><td>${y}${a.n<12?' ('+a.n+'м)':''}</td><td>${fUsd(a.rev)}</td><td>${fUsd(a.cost)}</td><td>${fUsd(a.fot)}</td><td class="${a.rev>0&&a.fot/a.rev>0.3?'negv':''}">${pr(a.fot,a.rev)}</td><td class="${a.net>=0?'posv':'negv'}">${fUsd(a.net)}</td><td class="${a.net>=0?'posv':'negv'}">${pr(a.net,a.rev)}</td><td>${a.n}/12</td></tr>`;});
+  });
+  h+=`</tbody></table></div><p class="muted" style="margin-top:8px">Etsy — основной прибыльный канал; за <b>2024</b> показана вся компания (E-Com тогда не было). E-Com — с 2025 (инвестпроект). Подсветка ФОТ/выручка >30% — сигнал перегруза зарплатами.</p></div>`;
+  // график выручки и ЧП по направлениям/годам
+  h+=`<div class="card cb"><div class="ctitle"><span class="l">Выручка по направлениям и годам</span></div><div class="cw" style="height:300px"><canvas id="an-dir-rev"></canvas></div></div>`;
+  h+=`<div class="card cg"><div class="ctitle"><span class="l">Чистая прибыль по направлениям и годам</span></div><div class="cw" style="height:300px"><canvas id="an-dir-net"></canvas></div></div>`;
+  document.getElementById('an-body').innerHTML=h;
+  const dcol=['#6f5ae0','#cf8500','#0d9488','#d6336c'];
+  const revDs=D.directions.map((d,i)=>({label:d.name,data:ys.map(y=>{const a=dirAggY(d.id,y);return a.n>0?Math.round(a.rev):null;}),backgroundColor:dcol[i%dcol.length],borderRadius:3}));
+  mkChart('an-dir-rev','bar',{labels:ys.map(String),datasets:revDs});
+  const netDs=D.directions.map((d,i)=>({label:d.name,data:ys.map(y=>{const a=dirAggY(d.id,y);return a.n>0?Math.round(a.net):null;}),backgroundColor:dcol[i%dcol.length],borderRadius:3}));
+  mkChart('an-dir-net','bar',{labels:ys.map(String),datasets:netDs});
 }
 
 /* ═══ ANALYTICS · ИНВЕСТПРОЕКТ E-COM ═══ */
@@ -682,11 +1068,42 @@ function rAnEcom(){
 /* ═══ SETTINGS ═══ */
 function rSettings(){document.getElementById('set-cloud').textContent=cloudOn()?'подключено':'не подключено';
   document.getElementById('set-dirs').innerHTML=D.directions.map((d,i)=>`<div class="fg" style="margin-bottom:8px"><label class="lbl">Направление ${i+1}</label><input data-dir="${d.id}" value="${d.name}"></div>`).join('');
-  document.querySelectorAll('#set-dirs input[data-dir]').forEach(inp=>inp.onchange=()=>{const d=D.directions.find(x=>x.id===inp.dataset.dir);d.name=inp.value;autoSave();rAll();});}
+  document.querySelectorAll('#set-dirs input[data-dir]').forEach(inp=>inp.onchange=()=>{const d=D.directions.find(x=>x.id===inp.dataset.dir);d.name=inp.value;autoSave();rAll();});
+  // пороги маркеров здоровья
+  const sh=document.getElementById('set-health');if(sh){
+    let h=`<div class="seg" id="sh-scope" style="margin-bottom:10px">${HSCOPES.map(([k,n])=>`<button class="${k===hScope?'act':''}" data-s="${k}">${n}</button>`).join('')}</div>`;
+    h+=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Маркер</th><th>Правило</th><th>🟢 норма</th><th>🟡 на грани</th><th>🔴 критич.</th></tr></thead><tbody>`;
+    HEALTH.forEach(m=>{const o=(D.health[hScope]||{})[m.id]||{};
+      const inp=(fld)=>`<input data-hs="${hScope}" data-hid="${m.id}" data-hf="${fld}" value="${o[fld]!=null?o[fld]:''}" placeholder="${m[fld]}" inputmode="decimal" style="min-width:52px">`;
+      h+=`<tr><td>${m.label}</td><td class="muted" style="font-family:inherit">${m.lower?'меньше — лучше':'больше — лучше'}</td><td>${inp('green')}</td><td>${inp('yellow')}</td><td>${inp('red')}</td></tr>`;});
+    h+=`</tbody></table></div><p class="muted" style="margin-top:8px;font-size:11px">Пороги (в %) для <b>${(HSCOPES.find(x=>x[0]===hScope)||[])[1]}</b>: 🟢 норма · 🟡 на грани · 🔴 критический уровень (помечается ⚠️ на Обзоре). Пусто = значение по умолчанию.</p>`;
+    sh.innerHTML=h;
+    sh.querySelectorAll('#sh-scope button').forEach(b=>b.onclick=()=>{hScope=b.dataset.s;rSettings();});
+    sh.querySelectorAll('input[data-hid]').forEach(inp=>inp.onchange=()=>{const sc=inp.dataset.hs,id=inp.dataset.hid;if(!D.health[sc])D.health[sc]={};if(!D.health[sc][id])D.health[sc][id]={};const v=inp.value.trim();if(v==='')delete D.health[sc][id][inp.dataset.hf];else D.health[sc][id][inp.dataset.hf]=+v;autoSave();upHdr();toast('Порог обновлён ✓');});
+  }
+  // пороги маржи в «Ценах» (отдельно ПЧ/ХМ)
+  const sp=document.getElementById('set-pricethr');if(sp){
+    const inp=(tab,fld,def)=>`<input data-pt="${tab}" data-ptf="${fld}" value="${(D.priceThr[tab]||{})[fld]!=null?D.priceThr[tab][fld]:''}" placeholder="${def}" inputmode="decimal" style="min-width:56px">`;
+    let h=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Продукт</th><th>🟢 зелёная маржа ≥, %</th><th>🔴 красная маржа <, %</th></tr></thead><tbody>`;
+    h+=`<tr><td>ПЧ (печать)</td><td>${inp('pch','green',50)}</td><td>${inp('pch','red',45)}</td></tr>`;
+    h+=`<tr><td>ХМ (хендмейд)</td><td>${inp('hm','green',50)}</td><td>${inp('hm','red',45)}</td></tr>`;
+    h+=`</tbody></table></div><p class="muted" style="margin-top:8px;font-size:11px">🟢 если маржа ≥ зелёного · 🟡 между · 🔴 ниже красного. Между порогами — жёлтая зона. Пусто = по умолчанию (🟢 50% / 🔴 45%).</p>`;
+    sp.innerHTML=h;
+    sp.querySelectorAll('input[data-pt]').forEach(i=>i.onchange=()=>{const t=i.dataset.pt,f=i.dataset.ptf;if(!D.priceThr[t])D.priceThr[t]={};const v=i.value.trim();if(v==='')delete D.priceThr[t][f];else D.priceThr[t][f]=+v;autoSave();toast('Порог маржи обновлён ✓');});
+  }}
 async function changePassword(){const p1=(document.getElementById('np1').value||''),p2=(document.getElementById('np2').value||'');if(p1.length<6)return toast('Пароль слишком короткий (мин. 6)','err');if(p1!==p2)return toast('Пароли не совпадают','err');_wrapPw=await wrapDEK(_dekRaw,p1);await persist();document.getElementById('np1').value='';document.getElementById('np2').value='';toast('Пароль изменён ✓');}
 async function setupRecovery(){const seg=()=>Array.from(crypto.getRandomValues(new Uint8Array(5))).map(b=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b%32]).join('');const code=[seg(),seg(),seg(),seg()].join('-');_wrapRc=await wrapDEK(_dekRaw,normCode(code));await persist();document.getElementById('rec-out').innerHTML=`<div class="okbox" style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:1px">${code}</div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-gh btn-sm" onclick="navigator.clipboard.writeText('${code}').then(()=>toast('Скопировано'))">Копировать</button><a class="btn btn-gh btn-sm" href="mailto:?subject=Код восстановления — Финансы компании&body=${code}">Отправить себе</a></div><div class="warn">⚠️ Сохрани код сейчас — больше не покажем.</div>`;}
 
 /* ═══ MODAL/TOAST ═══ */
+// кастомный тултип: следует за курсором, не обрезается краем экрана. Используется через data-tip="..."
+function setupTips(){
+  const tb=document.getElementById('tipbox');if(!tb)return;
+  const place=e=>{const pad=12,r=tb.getBoundingClientRect();let x=e.clientX+15,y=e.clientY+17;if(x+r.width>innerWidth-pad)x=e.clientX-r.width-15;if(x<pad)x=pad;if(y+r.height>innerHeight-pad)y=e.clientY-r.height-17;if(y<pad)y=pad;tb.style.left=x+'px';tb.style.top=y+'px';};
+  document.addEventListener('mouseover',e=>{const t=e.target.closest('[data-tip]');if(t){tb.textContent=t.getAttribute('data-tip');tb.style.display='block';place(e);}});
+  document.addEventListener('mousemove',e=>{if(tb.style.display==='block')place(e);});
+  document.addEventListener('mouseout',e=>{if(e.target.closest('[data-tip]'))tb.style.display='none';});
+  document.addEventListener('click',()=>{tb.style.display='none';},true);
+}
 function modal(html){document.getElementById('modal').innerHTML=html;document.getElementById('moverlay').classList.add('open');}
 function closeModal(){document.getElementById('moverlay').classList.remove('open');}
 function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast '+(t==='err'?'err':'ok')+' show';setTimeout(()=>e.classList.remove('show'),2600);}
@@ -694,11 +1111,17 @@ function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.c
 /* ═══ IMPORT/EXPORT ═══ */
 function xprt(){const b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='compfin_'+new Date().toISOString().slice(0,10)+'.json';a.click();}
 function bindImport(){const f=document.getElementById('imp-file');if(!f)return;f.onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{D=mergeDefaults(JSON.parse(r.result));persist();rAll();toast('Данные загружены ✓');}catch{toast('Не удалось прочитать файл','err');}};r.readAsText(file);};}
-async function loadSeed(){try{const r=await fetch('seed-data.json?cb='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const s=await r.json();D=mergeDefaults(mergeSeed(D,s));await persist();rAll();toast('Данные компании импортированы ✓');}catch{toast('seed-data.json не найден рядом с index.html','err');}}
+async function loadSeed(){try{const r=await fetch('seed-data.json?cb='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const s=await r.json();D=mergeDefaults(mergeSeed(D,s));try{const rp=await fetch('prices-data.json?cb='+Date.now(),{cache:'no-store'});if(rp.ok)D.prices=await rp.json();}catch{}await persist();rAll();toast('Данные компании импортированы ✓');}catch{toast('seed-data.json не найден рядом с index.html','err');}}
 function mergeSeed(cur,s){const d=cur||defData();d.directions=s.directions||d.directions;d.pnl=s.pnl||d.pnl;d.cf=s.cf||d.cf;d.employees=(s.employees||[]).map((e,i)=>Object.assign({id:'e'+i,allocHist:{}},e));if(s.meta)d.meta=Object.assign(d.meta||{},s.meta);return d;}
 
 /* ═══ MERGE ═══ */
-function mergeDefaults(d){const def=defData();if(!d||typeof d!=='object')return def;for(const k in def)if(d[k]===undefined)d[k]=def[k];if(!d.meta)d.meta=def.meta;if(!Array.isArray(d.directions)||!d.directions.length)d.directions=def.directions;['pnl','cf'].forEach(k=>{if(!d[k])d[k]={};['cons','etsy','ecom'].forEach(id=>{if(!d[k][id])d[k][id]={rows:[],data:{}};});});if(!Array.isArray(d.employees))d.employees=[];d.employees.forEach(e=>{if(e.base===undefined)e.base=+e.salary||0;if(e.bonus===undefined)e.bonus=0;});if(!d.deptControls||Array.isArray(d.deptControls))d.deptControls={};if(!d.yearPlan)d.yearPlan={};if(!d.yp2)d.yp2={};return d;}
+function mergeDefaults(d){const def=defData();if(!d||typeof d!=='object')return def;for(const k in def)if(d[k]===undefined)d[k]=def[k];if(!d.meta)d.meta=def.meta;if(!Array.isArray(d.directions)||!d.directions.length)d.directions=def.directions;['pnl','cf'].forEach(k=>{if(!d[k])d[k]={};['cons','etsy','ecom'].forEach(id=>{if(!d[k][id])d[k][id]={rows:[],data:{}};});});if(!Array.isArray(d.employees))d.employees=[];d.employees.forEach(e=>{if(e.base===undefined)e.base=+e.salary||0;if(e.bonus===undefined)e.bonus=0;});if(!d.deptControls||Array.isArray(d.deptControls))d.deptControls={};if(!d.yearPlan)d.yearPlan={};if(!d.yp2)d.yp2={};if(!d.health||typeof d.health!=='object'||Array.isArray(d.health))d.health={};
+  // миграция старого плоского формата {rent:{good,warn}} → по-скоупам {company:{rent:{green,yellow}}}
+  if(d.health.rent||d.health.fot||d.health.drr||d.health.prod){const old=d.health;d.health={company:{}};['rent','fot','drr','prod'].forEach(id=>{if(old[id])d.health.company[id]={green:old[id].good,yellow:old[id].warn};});}
+  ['company','etsy','ecom'].forEach(s=>{if(!d.health[s]||typeof d.health[s]!=='object')d.health[s]={};});
+  if(!d.ypRates||typeof d.ypRates!=='object'||Array.isArray(d.ypRates))d.ypRates={};if(d.prices===undefined)d.prices=null;
+  if(!d.priceThr||typeof d.priceThr!=='object'||Array.isArray(d.priceThr))d.priceThr={};['pch','hm'].forEach(k=>{if(!d.priceThr[k])d.priceThr[k]={};});
+  return d;}
 
 /* ═══ AUTH ═══ */
 function showGate(){document.getElementById('auth-gate').classList.add('show');}
@@ -721,6 +1144,7 @@ function initAuth(){
       else{D=mergeDefaults(defData());await initDEK(pw);
         // первый запуск: попробуем подтянуть локальный seed-data.json (он в .gitignore, не публикуется)
         try{const r=await fetch('seed-data.json?cb='+Date.now(),{cache:'no-store'});if(r.ok){D=mergeDefaults(mergeSeed(D,await r.json()));}}catch{}
+        try{const rp=await fetch('prices-data.json?cb='+Date.now(),{cache:'no-store'});if(rp.ok)D.prices=await rp.json();}catch{}
         await persist();}
       hideGate();bootData();
     }catch(e){err.textContent='Ошибка: '+e.message;}
@@ -738,7 +1162,7 @@ function initAuth(){
 /* ═══ INIT ═══ */
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('h-year').onchange=e=>{YEAR=+e.target.value;D.meta.curYear=YEAR;autoSave();rAll();};
-  bindImport();initAuth();
+  bindImport();initAuth();setupTips();
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')persist();});
   window.addEventListener('beforeunload',()=>{persist();});
 });
