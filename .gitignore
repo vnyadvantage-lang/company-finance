@@ -9,4 +9,4 @@ compfin_*.json
 *.md
 # Локальные песочницы для предпросмотра (не публикуем)
 preview/
-_sandbox/
+_sandbox*/

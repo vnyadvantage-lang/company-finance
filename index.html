@@ -730,30 +730,47 @@ function ypComputeMonth(year,month,mode){
   res.__dirPay=dirPay;res.__dirRev=dirRev;return res;
 }
 function ypTotals(year,month,mode){const r=ypComputeMonth(year,month,mode);let o={leads:0,orders:0,rev:0,marginAmt:0,profit:0,costs:0,fot:0};YP_CH.forEach(ch=>{const c=r[ch.id];o.leads+=c.leads;o.orders+=c.orders;o.rev+=c.rev;o.marginAmt+=c.marginAmt;o.profit+=c.profit;o.costs+=c.costs;o.fot+=c.fot;});return o;}
-// понедельный темп (pacing) поверх канальной модели
+// календарные недели месяца (Пн–Вс): первая/последняя могут быть неполными
+function ypWeeks(yr,m){const dim=new Date(yr,m+1,0).getDate();const ws=[];let d=1;while(d<=dim){const dow=new Date(yr,m,d).getDay();const toSun=dow===0?0:7-dow;const d2=Math.min(d+toSun,dim);ws.push({d1:d,d2,days:d2-d+1});d=d2+1;}return{dim,ws};}
+// недельный факт (выручка/покупки) — отдельный трекер темпа, D.weekFact[yr][m]=[{rev,orders}...]
+function wkFact(yr,m){if(!D.weekFact)D.weekFact={};const y=D.weekFact[yr]||(D.weekFact[yr]={});const n=ypWeeks(yr,m).ws.length;let a=y[m];if(!Array.isArray(a)){a=[];y[m]=a;}while(a.length<n)a.push({rev:0,orders:0});return a;}
+// понедельный план/факт: месячный план делится по неделям, факт вводится понедельно
 function ypPacingCard(yr,m){
-  const plan=ypTotals(yr,m,'plan'),fact=ypTotals(yr,m,'fact');
-  const dim=new Date(yr,m+1,0).getDate();const wk=dim/7;
+  const plan=ypTotals(yr,m,'plan'),factM=ypTotals(yr,m,'fact');
+  const {dim,ws}=ypWeeks(yr,m);
   const isCur=(yr===CYR&&m===CM);
+  const fa=wkFact(yr,m);
+  const planRev=plan.rev,planOrd=plan.orders;
+  let curW=-1;if(isCur){const t=NOW.getDate();curW=ws.findIndex(w=>t>=w.d1&&t<=w.d2);}
   const tg=(l,v,c)=>`<div class="kpi"><div class="kpi-l"><span class="kl">${l}</span><span class="kv ${c||''}">${v}</span></div></div>`;
-  let pace='';
-  if(isCur&&plan.rev>0){
-    const elapsed=Math.min(NOW.getDate(),dim),frac=elapsed/dim;
-    const tgt=plan.rev*frac,diff=fact.rev-tgt,diffPc=tgt>0?Math.round(diff/tgt*100):0;
-    const proj=frac>0?fact.rev/frac:0,projPc=plan.rev>0?Math.round(proj/plan.rev*100):0;const ahead=diff>=0;
-    pace=`<div class="ypres" style="border-top:1px dashed var(--brd2);margin-top:.85rem">
-      <div class="mini">Прошло месяца<b>${Math.round(frac*100)}% · ${elapsed}/${dim} дн</b></div>
-      <div class="mini">Цель к сегодня<b>${fUsd(tgt)}</b></div>
-      <div class="mini">Факт внесён<b>${fUsd(fact.rev)}</b></div>
-      <div class="mini">${ahead?'Опережение':'Отставание'}<b class="${ahead?'posv':'negv'}">${diff>=0?'+':''}${fUsd(diff)} · ${diffPc>=0?'+':''}${diffPc}%</b></div>
-      <div class="mini">Прогноз на месяц<b class="${projPc>=100?'posv':'negv'}">${fUsd(proj)} · ${projPc}% плана</b></div>
-    </div>`;
-  }
-  return `<div class="card ca"><div class="ctitle"><span class="l"><span class="dot a"></span>Понедельный темп · ${MN[m]} ${yr}</span>${isCur?'<span class="pill s">текущий месяц</span>':''}</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.9rem">
-      ${tg('Недель в месяце',wk.toFixed(1),'b')}${tg('Нужно выручки / нед',fUsd(plan.rev/wk),'g')}${tg('Нужно покупок / нед',Math.round(plan.orders/wk),'t')}${tg('План месяца',fUsd(plan.rev),'b')}
-    </div>${pace}
-    <p class="muted" style="margin-top:10px;font-size:11px">Недельный темп = план месяца ÷ число недель (${dim} дн ≈ ${wk.toFixed(1)} нед). ${isCur?'«Факт внесён» — суммарный Факт по каналам за месяц; прогноз линейно экстраполирует текущий темп на весь месяц.':'Опережение/отставание и прогноз показываются для текущего месяца — внесите Факт по каналам.'}</p></div>`;
+  if(planRev<=0)return `<div class="card ca"><div class="ctitle"><span class="l"><span class="dot a"></span>Понедельный план / факт · ${MN[m]} ${yr}</span>${isCur?'<span class="pill s">текущий месяц</span>':''}</div><p class="muted">Внесите план месяца (режим «План» по каналам), чтобы разбить его по неделям и вводить факт.</p></div>`;
+  let cumPlan=0,cumFact=0,coveredDays=0,hasAny=false,rows='';
+  ws.forEach((w,i)=>{
+    const share=w.days/dim,wpRev=planRev*share;cumPlan+=wpRev;
+    const f=fa[i]||{rev:0,orders:0},fRev=+f.rev||0,fOrd=+f.orders||0,entered=fRev>0||fOrd>0;
+    if(entered){cumFact+=fRev;coveredDays+=w.days;hasAny=true;}
+    const diff=entered?cumFact-cumPlan:null,ratio=cumPlan>0?cumFact/cumPlan:0;
+    const st=!entered?'<span class="muted">—</span>':(ratio>=1?'🟢':(ratio>=0.9?'🟡':'🔴'));
+    const cw=(i===curW)?' style="background:var(--bg3)"':'';
+    rows+=`<tr${cw}><td>Нед. ${i+1} · ${w.d1}–${w.d2}${i===curW?' <span class="pill s" style="font-size:9px">сейчас</span>':''}</td>`+
+      `<td>${fUsd(wpRev)}</td>`+
+      `<td><input data-wk="${i}" data-wf="rev" value="${fRev||''}" inputmode="decimal" style="width:92px;text-align:right;padding:4px 6px"></td>`+
+      `<td><input data-wk="${i}" data-wf="orders" value="${fOrd||''}" inputmode="numeric" style="width:62px;text-align:right;padding:4px 6px"></td>`+
+      `<td>${entered?fUsd(cumFact):'—'} / ${fUsd(cumPlan)}</td>`+
+      `<td class="${entered?(diff>=0?'posv':'negv'):''}">${entered?(diff>=0?'+':'')+fUsd(diff)+' · '+Math.round(ratio*100)+'%':'—'}</td>`+
+      `<td style="text-align:center">${st}</td></tr>`;
+  });
+  let proj=0,projPc=0;if(hasAny&&coveredDays>0){proj=cumFact*dim/coveredDays;projPc=Math.round(proj/planRev*100);}
+  const donePc=Math.round(cumFact/planRev*100);
+  const sum=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.9rem;margin-bottom:1rem">`+
+    tg('План месяца',fUsd(planRev),'b')+tg('Факт накоплено',fUsd(cumFact),'g')+
+    tg('Выполнение плана',donePc+'%',donePc>=100?'g':'t')+
+    tg('Прогноз на месяц',hasAny?fUsd(proj)+' · '+projPc+'%':'—',hasAny?(projPc>=100?'g':'r'):'t')+`</div>`;
+  const sumWk=fa.reduce((s,f)=>s+(+f.rev||0),0);
+  const recon=factM.rev>0?`<p class="muted" style="font-size:11px;margin-top:8px">Σ недель: <b>${fUsd(sumWk)}</b> · Факт по каналам за месяц: <b>${fUsd(factM.rev)}</b>${Math.abs(sumWk-factM.rev)>Math.max(50,factM.rev*0.02)?' — <span class="negv">расходятся</span> (недельный ввод — отдельный трекер темпа)':' ✓'}</p>`:'';
+  const note=`<p class="muted" style="margin-top:8px;font-size:11px">Календарные недели (Пн–Вс); первая и последняя неделя месяца могут быть неполными, план недели — пропорц. числу её дней. Вводите фактическую выручку и покупки за каждую неделю — «Накоплено» и «Статус» покажут, идём ли по плану нарастающим итогом (🟢 ≥100% · 🟡 ≥90% · 🔴 &lt;90% от плана к этой неделе). Прогноз = факт ÷ доля прошедших недель.</p>`;
+  return `<div class="card ca"><div class="ctitle"><span class="l"><span class="dot a"></span>Понедельный план / факт · ${MN[m]} ${yr}</span>${isCur?'<span class="pill s">текущий месяц</span>':''}</div>`+
+    sum+`<div class="tw"><table class="tbl" style="min-width:660px"><thead><tr><th>Неделя</th><th>План выр.</th><th>Факт выр. ✏️</th><th>Покупки ✏️</th><th>Накопл. факт / план</th><th>Δ накопл. · %</th><th>Статус</th></tr></thead><tbody>${rows}</tbody></table></div>`+recon+note+`</div>`;
 }
 function rYearplan(){
   rSeg('yp-mode',ypMode,v=>{ypMode=v;rYearplan();},[['plan','План'],['fact','Факт'],['cmp','Сравнение']]);
@@ -778,6 +795,7 @@ function rYearplan(){
   document.getElementById('yp-body').innerHTML=lockBar(yr)+h;
   document.querySelectorAll('#yp-body input[data-p]').forEach(inp=>inp.onchange=()=>{const o=yp2(yr,inp.dataset.ch);o[mode][inp.dataset.p][m]=+inp.value||0;autoSave();rYearplan();});
   document.querySelectorAll('#yp-body input[data-dirmargin]').forEach(inp=>inp.onchange=()=>{const dir=inp.dataset.dirmargin;if(!D.ypRates)D.ypRates={};if(!D.ypRates[dir])D.ypRates[dir]={};const v=inp.value.trim();if(v==='')delete D.ypRates[dir].margin;else D.ypRates[dir].margin=+v;autoSave();rYearplan();});
+  document.querySelectorAll('#yp-body input[data-wf]').forEach(inp=>inp.onchange=()=>{const a=wkFact(yr,m),i=+inp.dataset.wk;if(!a[i])a[i]={rev:0,orders:0};a[i][inp.dataset.wf]=+inp.value||0;autoSave();rYearplan();});
   disableIfLocked('yp-body',yr);
 }
 function ypCard(ch,yr,m,mode,c){
@@ -791,32 +809,43 @@ function ypCard(ch,yr,m,mode,c){
   return `<div class="card ${ch.cls}"><div class="ctitle"><span class="l">${ch.name}</span><span class="kpct ${c.profit>=0?'pos':'neg'}">${fUsd(c.profit)}</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px">${params}</div><div class="ypres">${res}</div><p class="muted" style="font-size:10px;margin-top:7px">ФОТ тянется из «Персонала» (доля направления × выручка канала). Общепр. — авто из факта P&L. Маржа — авто/переопределяемая по направлению.</p></div>`;
 }
 /* ═══ ПЛАН ГОДА · СРАВНЕНИЕ ПЛАН/ФАКТ ═══ */
+// итоги по направлению (Etsy/E-Com) для режима plan|fact
+function ypDirTotals(yr,m,mode){const r=ypComputeMonth(yr,m,mode);const o={etsy:{orders:0,rev:0,marginAmt:0,costs:0,profit:0},ecom:{orders:0,rev:0,marginAmt:0,costs:0,profit:0}};YP_CH.forEach(ch=>{const c=r[ch.id],t=o[ch.dir];t.orders+=c.orders;t.rev+=c.rev;t.marginAmt+=c.marginAmt;t.costs+=c.costs;t.profit+=c.profit;});return o;}
 function ypCompareView(yr,m){
   const plan=ypComputeMonth(yr,m,'plan'),fact=ypComputeMonth(yr,m,'fact');
   const pT=ypTotals(yr,m,'plan'),fT=ypTotals(yr,m,'fact');
+  const pD=ypDirTotals(yr,m,'plan'),fD=ypDirTotals(yr,m,'fact');
   const tg=(l,v,c)=>`<div class="kpi" style="border-left:3px solid var(--${cssColor(c||'b')})"><div class="kpi-l"><span class="kl">${l}</span><span class="kv ${c||''}" style="font-size:20px">${v}</span></div></div>`;
   const dpc=(pl,fa)=>pl!==0?Math.round((fa-pl)/Math.abs(pl)*100):(fa!==0?null:0);
   const row=(label,pl,fa,money,goodHigher)=>{const d=fa-pl,pc=dpc(pl,fa),good=goodHigher?d>=0:d<=0,f=money?fUsd:(x=>Math.round(x));return `<tr><td>${label}</td><td>${f(pl)}</td><td>${f(fa)}</td><td class="${good?'posv':'negv'}">${d>=0?'+':''}${f(d)}</td><td class="${good?'posv':'negv'}">${pc==null?'—':(pc>=0?'+':'')+pc+'%'}</td></tr>`;};
-  // вердикт по выручке и прибыли
-  const revPc=dpc(pT.rev,fT.rev),profPc=dpc(pT.profit,fT.profit);
-  let verdict='Внесите План и Факт по каналам, чтобы увидеть расхождение.';
-  if(pT.rev>0&&fT.rev>0){const rp=fT.rev-pT.rev;verdict=rp>=0?`Факт выручки <b>выше плана</b> на ${fUsd(rp)} (${revPc>=0?'+':''}${revPc}%) — план был <b>пессимистичным</b> (недооценили).`:`Факт выручки <b>ниже плана</b> на ${fUsd(-rp)} (${revPc}%) — план был <b>оптимистичным</b> (переоценили).`;}
-  let h=`<div class="card cb" style="border:1.5px solid var(--brd2);box-shadow:0 4px 18px rgba(22,24,18,.07)"><div class="ctitle" style="font-size:13px"><span class="l" style="font-size:13px"><span class="dot b"></span>ПЛАН vs ФАКТ · ${MN[m]} ${yr}</span></div><div class="g3" style="gap:.8rem">`+
+  const verdict=(pRev,fRev,label)=>{if(pRev>0&&fRev>0){const rp=fRev-pRev,pc=dpc(pRev,fRev);return rp>=0?`<b>${label}:</b> факт выручки <b>выше плана</b> на ${fUsd(rp)} (${pc>=0?'+':''}${pc}%) — план был <b>пессимистичным</b> (недооценили).`:`<b>${label}:</b> факт выручки <b>ниже плана</b> на ${fUsd(-rp)} (${pc}%) — план был <b>оптимистичным</b> (переоценили).`;}return `<b>${label}:</b> внесите План и Факт по каналам, чтобы увидеть расхождение.`;};
+  // ── вся компания (итог) ──
+  let h=`<div class="card cb" style="border:1.5px solid var(--brd2);box-shadow:0 4px 18px rgba(22,24,18,.07)"><div class="ctitle" style="font-size:13px"><span class="l" style="font-size:13px"><span class="dot b"></span>ПЛАН vs ФАКТ · ВСЯ КОМПАНИЯ · ${MN[m]} ${yr}</span></div><div class="g3" style="gap:.8rem">`+
     tg('Выручка · план',fUsd(pT.rev),'b')+tg('Выручка · факт',fUsd(fT.rev),'g')+tg('Δ выручки',`${fT.rev-pT.rev>=0?'+':''}${fUsd(fT.rev-pT.rev)}`,fT.rev>=pT.rev?'g':'r')+
     tg('Прибыль · план',fUsd(pT.profit),'b')+tg('Прибыль · факт',fUsd(fT.profit),fT.profit>=0?'g':'r')+tg('Δ прибыли',`${fT.profit-pT.profit>=0?'+':''}${fUsd(fT.profit-pT.profit)}`,fT.profit>=pT.profit?'g':'r')+
-    `</div><p class="muted" style="margin-top:10px">${verdict}</p></div>`;
-  h+=`<div class="card"><div class="ctitle"><span class="l">Расхождение по каналам</span></div><div class="tw"><table class="tbl"><thead><tr><th>Канал · показатель</th><th>План</th><th>Факт</th><th>Δ</th><th>Δ %</th></tr></thead><tbody>`;
-  YP_CH.forEach(ch=>{const cp=plan[ch.id],cf=fact[ch.id];
-    h+=`<tr class="deprow"><td colspan="5">${ch.name}</td></tr>`+
-       row('Покупки',cp.orders,cf.orders,false,true)+
-       row('Выручка',cp.rev,cf.rev,true,true)+
-       row('Чистая прибыль',cp.profit,cf.profit,true,true);});
-  h+=`<tr class="bold"><td colspan="5">ИТОГО ПО ВСЕМ КАНАЛАМ</td></tr>`+
-     row('Покупки',pT.orders,fT.orders,false,true)+
-     row('Выручка',pT.rev,fT.rev,true,true)+
-     row('Расходы',pT.costs,fT.costs,true,false)+
-     row('Чистая прибыль',pT.profit,fT.profit,true,true);
-  h+=`</tbody></table></div><p class="muted" style="margin-top:8px">«Δ» = Факт − План. Зелёный — лучше плана (для расходов «лучше» = меньше). Помогает увидеть, где были оптимистичны (факт ниже) или пессимистичны (факт выше). ФОТ и общепроизв. считаются авто, маржа — из факта/переопределения.</p></div>`;
+    `</div><p class="muted" style="margin-top:10px">${verdict(pT.rev,fT.rev,'Компания')}</p></div>`;
+  // ── каждое направление отдельно (Etsy и E-Com не смешиваем) ──
+  const DIRS=[{id:'etsy',name:'Etsy',cls:'cb',dot:'b'},{id:'ecom',name:'E-Com',cls:'ct',dot:'t'}];
+  DIRS.forEach(d=>{
+    const p=pD[d.id],f=fD[d.id];const rpc=dpc(p.rev,f.rev);
+    h+=`<div class="card ${d.cls}" style="margin-top:1rem"><div class="ctitle"><span class="l"><span class="dot ${d.dot}"></span>ПЛАН vs ФАКТ · ${d.name} · ${MN[m]} ${yr}</span><span class="pill ${f.profit>=0?'s':'e'}">${d.name}</span></div><div class="g3" style="gap:.8rem">`+
+      tg('Выручка · план',fUsd(p.rev),'b')+tg('Выручка · факт',fUsd(f.rev),'g')+tg('Δ выручки',`${f.rev-p.rev>=0?'+':''}${fUsd(f.rev-p.rev)}${rpc!=null?' · '+(rpc>=0?'+':'')+rpc+'%':''}`,f.rev>=p.rev?'g':'r')+
+      tg('Прибыль · план',fUsd(p.profit),'b')+tg('Прибыль · факт',fUsd(f.profit),f.profit>=0?'g':'r')+tg('Δ прибыли',`${f.profit-p.profit>=0?'+':''}${fUsd(f.profit-p.profit)}`,f.profit>=p.profit?'g':'r')+
+      `</div><p class="muted" style="margin:10px 0 6px">${verdict(p.rev,f.rev,d.name)}</p>`+
+      `<div class="tw"><table class="tbl"><thead><tr><th>${d.name} · канал · показатель</th><th>План</th><th>Факт</th><th>Δ</th><th>Δ %</th></tr></thead><tbody>`;
+    YP_CH.filter(ch=>ch.dir===d.id).forEach(ch=>{const cp=plan[ch.id],cf=fact[ch.id];
+      h+=`<tr class="deprow"><td colspan="5">${ch.name}</td></tr>`+
+         row('Покупки',cp.orders,cf.orders,false,true)+
+         row('Выручка',cp.rev,cf.rev,true,true)+
+         row('Чистая прибыль',cp.profit,cf.profit,true,true);});
+    h+=`<tr class="bold"><td colspan="5">ИТОГО ${d.name}</td></tr>`+
+       row('Покупки',p.orders,f.orders,false,true)+
+       row('Выручка',p.rev,f.rev,true,true)+
+       row('Расходы',p.costs,f.costs,true,false)+
+       row('Чистая прибыль',p.profit,f.profit,true,true);
+    h+=`</tbody></table></div></div>`;
+  });
+  h+=`<p class="muted" style="margin-top:8px">«Δ» = Факт − План. Зелёный — лучше плана (для расходов «лучше» = меньше). <b>Etsy</b> и <b>E-Com</b> показаны раздельно — просадка одного направления не маскирует результат другого. ФОТ и общепроизв. — авто, маржа — из факта/переопределения.</p>`;
   return h;
 }
 
@@ -825,7 +854,7 @@ async function loadPrices(){try{const r=await fetch('prices-data.json?cb='+Date.
 const PC_COL={'Дизайнер':'#6f5ae0','Печать':'#3f7ad1','Художник':'#cf8500','Справка':'#0d9488','Доставка':'#5b9bd5','Пошлина':'#d6336c','НП':'#94a3b8','Комиссии':'#e0603a','ФОТ сдельный':'#b06ab3','Маржа':'#1f9d6b'};
 function pcEff(r){const p=r.priceNew!=null?+r.priceNew:+r.price;const cogs=+r.cogs||0;const mP=p-cogs;return{p,cogs,mP,mp:p>0?mP/p:0,edited:r.priceNew!=null&&+r.priceNew!==+r.price};}
 function pcThr(tab,fld,def){const o=D.priceThr&&D.priceThr[tab];return (o&&o[fld]!=null&&o[fld]!=='')?+o[fld]:def;}
-function pcCls(mp,tab){const g=pcThr(tab,'green',50)/100,r=pcThr(tab,'red',45)/100;return mp>=g?'ghi':(mp>=r?'ahi':'rhi');}  // ≥green 🟢 · ≥red 🟡 · <red 🔴
+function pcCls(mp,tab){const g=pcThr(tab,'green',50)/100,y=pcThr(tab,'yellow',45)/100;return mp>=g?'ghi':(mp>=y?'ahi':'rhi');}  // ≥green 🟢 · ≥yellow 🟡 · <yellow 🔴
 function pcResetPrices(){const ds=D.prices&&D.prices[pricesTab];if(!ds)return;ds.rows.forEach(r=>delete r.priceNew);autoSave();rPrices();}
 function rPrices(){
   const body=document.getElementById('pc-body');
@@ -835,7 +864,7 @@ function rPrices(){
     return;
   }
   const ds=D.prices[pricesTab],rows=ds.rows;const idxOf=new Map(rows.map((r,i)=>[r,i]));
-  const gT=pcThr(pricesTab,'green',50)/100,rT=pcThr(pricesTab,'red',45)/100,gP=Math.round(gT*100),rP=Math.round(rT*100);
+  const gT=pcThr(pricesTab,'green',50)/100,rT=pcThr(pricesTab,'yellow',45)/100,gP=Math.round(gT*100),rP=Math.round(rT*100);
   const effs=rows.map(pcEff);const avgM=effs.reduce((a,e)=>a+e.mp,0)/effs.length;
   const green=effs.filter(e=>e.mp>=gT).length,yellow=effs.filter(e=>e.mp>=rT&&e.mp<gT).length,red=effs.filter(e=>e.mp<rT).length;
   const editedN=effs.filter(e=>e.edited).length;
@@ -1083,13 +1112,14 @@ function rSettings(){document.getElementById('set-cloud').textContent=cloudOn()?
   }
   // пороги маржи в «Ценах» (отдельно ПЧ/ХМ)
   const sp=document.getElementById('set-pricethr');if(sp){
-    const inp=(tab,fld,def)=>`<input data-pt="${tab}" data-ptf="${fld}" value="${(D.priceThr[tab]||{})[fld]!=null?D.priceThr[tab][fld]:''}" placeholder="${def}" inputmode="decimal" style="min-width:56px">`;
-    let h=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Продукт</th><th>🟢 зелёная маржа ≥, %</th><th>🔴 красная маржа <, %</th></tr></thead><tbody>`;
-    h+=`<tr><td>ПЧ (печать)</td><td>${inp('pch','green',50)}</td><td>${inp('pch','red',45)}</td></tr>`;
-    h+=`<tr><td>ХМ (хендмейд)</td><td>${inp('hm','green',50)}</td><td>${inp('hm','red',45)}</td></tr>`;
-    h+=`</tbody></table></div><p class="muted" style="margin-top:8px;font-size:11px">🟢 если маржа ≥ зелёного · 🟡 между · 🔴 ниже красного. Между порогами — жёлтая зона. Пусто = по умолчанию (🟢 50% / 🔴 45%).</p>`;
+    const inp=(tab,fld,def)=>`<input data-pt="${tab}" data-ptf="${fld}" value="${(D.priceThr[tab]||{})[fld]!=null?D.priceThr[tab][fld]:''}" placeholder="${def}" inputmode="decimal" style="min-width:52px">`;
+    const redCell=tab=>`< ${pcThr(tab,'yellow',45)}% (авто)`;
+    let h=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Продукт</th><th>🟢 норма · маржа ≥, %</th><th>🟡 на грани · маржа ≥, %</th><th>🔴 низкая · маржа <</th></tr></thead><tbody>`;
+    h+=`<tr><td>ПЧ (печать)</td><td>${inp('pch','green',50)}</td><td>${inp('pch','yellow',45)}</td><td class="muted">${redCell('pch')}</td></tr>`;
+    h+=`<tr><td>ХМ (хендмейд)</td><td>${inp('hm','green',50)}</td><td>${inp('hm','yellow',45)}</td><td class="muted">${redCell('hm')}</td></tr>`;
+    h+=`</tbody></table></div><p class="muted" style="margin-top:8px;font-size:11px">Три коридора маржи на странице «Цены»: 🟢 норма (маржа ≥ зелёного) · 🟡 на грани (между жёлтым и зелёным) · 🔴 низкая (ниже жёлтого). Красный порог считается авто = ниже жёлтого. Пусто = по умолчанию (🟢 50% · 🟡 45%).</p>`;
     sp.innerHTML=h;
-    sp.querySelectorAll('input[data-pt]').forEach(i=>i.onchange=()=>{const t=i.dataset.pt,f=i.dataset.ptf;if(!D.priceThr[t])D.priceThr[t]={};const v=i.value.trim();if(v==='')delete D.priceThr[t][f];else D.priceThr[t][f]=+v;autoSave();toast('Порог маржи обновлён ✓');});
+    sp.querySelectorAll('input[data-pt]').forEach(i=>i.onchange=()=>{const t=i.dataset.pt,f=i.dataset.ptf;if(!D.priceThr[t])D.priceThr[t]={};const v=i.value.trim();if(v==='')delete D.priceThr[t][f];else D.priceThr[t][f]=+v;autoSave();rSettings();toast('Порог маржи обновлён ✓');});
   }}
 async function changePassword(){const p1=(document.getElementById('np1').value||''),p2=(document.getElementById('np2').value||'');if(p1.length<6)return toast('Пароль слишком короткий (мин. 6)','err');if(p1!==p2)return toast('Пароли не совпадают','err');_wrapPw=await wrapDEK(_dekRaw,p1);await persist();document.getElementById('np1').value='';document.getElementById('np2').value='';toast('Пароль изменён ✓');}
 async function setupRecovery(){const seg=()=>Array.from(crypto.getRandomValues(new Uint8Array(5))).map(b=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b%32]).join('');const code=[seg(),seg(),seg(),seg()].join('-');_wrapRc=await wrapDEK(_dekRaw,normCode(code));await persist();document.getElementById('rec-out').innerHTML=`<div class="okbox" style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:1px">${code}</div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-gh btn-sm" onclick="navigator.clipboard.writeText('${code}').then(()=>toast('Скопировано'))">Копировать</button><a class="btn btn-gh btn-sm" href="mailto:?subject=Код восстановления — Финансы компании&body=${code}">Отправить себе</a></div><div class="warn">⚠️ Сохрани код сейчас — больше не покажем.</div>`;}
@@ -1120,7 +1150,8 @@ function mergeDefaults(d){const def=defData();if(!d||typeof d!=='object')return 
   if(d.health.rent||d.health.fot||d.health.drr||d.health.prod){const old=d.health;d.health={company:{}};['rent','fot','drr','prod'].forEach(id=>{if(old[id])d.health.company[id]={green:old[id].good,yellow:old[id].warn};});}
   ['company','etsy','ecom'].forEach(s=>{if(!d.health[s]||typeof d.health[s]!=='object')d.health[s]={};});
   if(!d.ypRates||typeof d.ypRates!=='object'||Array.isArray(d.ypRates))d.ypRates={};if(d.prices===undefined)d.prices=null;
-  if(!d.priceThr||typeof d.priceThr!=='object'||Array.isArray(d.priceThr))d.priceThr={};['pch','hm'].forEach(k=>{if(!d.priceThr[k])d.priceThr[k]={};});
+  if(!d.weekFact||typeof d.weekFact!=='object'||Array.isArray(d.weekFact))d.weekFact={};
+  if(!d.priceThr||typeof d.priceThr!=='object'||Array.isArray(d.priceThr))d.priceThr={};['pch','hm'].forEach(k=>{if(!d.priceThr[k])d.priceThr[k]={};const o=d.priceThr[k];if(o.red!=null&&o.yellow==null){o.yellow=o.red;}delete o.red;});
   return d;}
 
 /* ═══ AUTH ═══ */
