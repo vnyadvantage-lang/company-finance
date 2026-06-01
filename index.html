@@ -329,14 +329,16 @@ function rAll(){rYearSel();upHdr();rPage(curPage);}
 
 /* ═══ HEADER ═══ */
 function rYearSel(){const ys=new Set([CYR,YEAR]);gridYears(D.pnl.cons).forEach(y=>ys.add(y));gridYears(D.pnl.etsy).forEach(y=>ys.add(y));const sel=document.getElementById('h-year');const arr=[...ys].sort((a,b)=>b-a);sel.innerHTML=arr.map(y=>`<option value="${y}" ${y===YEAR?'selected':''}>${y}</option>`).join('');}
-function upHdr(){let rev=0,prof=0;for(let m=0;m<12;m++){rev+=consVal(YEAR,m,'Выручка');prof+=consVal(YEAR,m,'Чистая прибыль');}document.getElementById('h-rev').textContent=fUsd(rev);document.getElementById('h-profit').textContent=fUsd(prof);document.getElementById('h-profit-chip').className='hchip '+(prof>=0?'g':'r');}
+function upHdr(){let rev=0,prof=0;for(let m=0;m<12;m++){if(!monthClosed(YEAR,m))continue;rev+=consVal(YEAR,m,'Выручка');prof+=consVal(YEAR,m,'Чистая прибыль');}document.getElementById('h-rev').textContent=fUsd(rev);document.getElementById('h-profit').textContent=fUsd(prof);document.getElementById('h-profit-chip').className='hchip '+(prof>=0?'g':'r');}
 
 /* ═══ OVERVIEW ═══ */
 // значение строки общего P&L по имени; если нет — сумма направлений
 function consVal(year,month,name){const g=D.pnl.cons;if(g&&g.rows.length){const r=g.rows.find(x=>x.name===name);if(r&&g.data[year]&&g.data[year][r.id])return g.data[year][r.id][month]||0;}return pnlVal('etsy',year,month,name)+pnlVal('ecom',year,month,name);}
 function consMonth(year,month){const rev=consVal(year,month,'Выручка');const cost=consVal(year,month,'Затраты');const net=consVal(year,month,'Чистая прибыль');const fot=consVal(year,month,'ФОТ');return{rev,cost:Math.abs(cost),net,fot:Math.abs(fot)};}
+// месяц считается «закрытым» (учитывается в сводных показателях) только когда внесена выручка
+function monthClosed(year,month){return consVal(year,month,'Выручка')>0;}
 function rOverview(){
-  let y={rev:0,cost:0,net:0,fot:0};for(let m=0;m<12;m++){const c=consMonth(YEAR,m);y.rev+=c.rev;y.cost+=c.cost;y.net+=c.net;y.fot+=c.fot;}
+  let y={rev:0,cost:0,net:0,fot:0},closedN=0;for(let m=0;m<12;m++){if(!monthClosed(YEAR,m))continue;closedN++;const c=consMonth(YEAR,m);y.rev+=c.rev;y.cost+=c.cost;y.net+=c.net;y.fot+=c.fot;}
   const cur=consMonth(YEAR,CM);
   document.getElementById('ov-kpis').innerHTML=[
     ['Выручка · YTD',fUsd(y.rev),'b',`Тек. мес: ${fUsd(cur.rev)}`],
@@ -344,11 +346,12 @@ function rOverview(){
     ['ФОТ · YTD',fUsd(y.fot),'p',`${y.rev>0?Math.round(y.fot/y.rev*100):0}% от выручки`],
     ['Рентабельность · YTD',(y.rev>0?Math.round(y.net/y.rev*100):0)+'%','t',`Затраты: ${fUsd(y.cost)}`],
   ].map(k=>`<div class="kpi"><div class="kpi-l"><span class="kl">${k[0]}</span><span class="kv ${k[2]}">${k[1]}</span></div><div class="ks">${k[3]}</div></div>`).join('');
-  let rows=D.directions.map(d=>{let rev=0,net=0,fot=0;for(let m=0;m<12;m++){rev+=pnlVal(d.id,YEAR,m,'Выручка');net+=pnlVal(d.id,YEAR,m,'Чистая прибыль');fot+=Math.abs(pnlVal(d.id,YEAR,m,'ФОТ'));}return`<tr><td>${d.name}</td><td>${fUsd(rev)}</td><td>${fUsd(fot)}</td><td class="${net>=0?'posv':'negv'}">${fUsd(net)}</td><td>${rev>0?Math.round(net/rev*100):0}%</td></tr>`;}).join('');
-  document.getElementById('ov-dir').innerHTML=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Направление</th><th>Выручка YTD</th><th>ФОТ YTD</th><th>Чистая прибыль YTD</th><th>Рентаб.</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  const rev=[],net=[];for(let m=0;m<12;m++){const c=consMonth(YEAR,m);rev.push(Math.round(c.rev));net.push(Math.round(c.net));}
+  let rows=D.directions.map(d=>{let rev=0,net=0,fot=0;for(let m=0;m<12;m++){if(!monthClosed(YEAR,m))continue;rev+=pnlVal(d.id,YEAR,m,'Выручка');net+=pnlVal(d.id,YEAR,m,'Чистая прибыль');fot+=Math.abs(pnlVal(d.id,YEAR,m,'ФОТ'));}return`<tr><td>${d.name}</td><td>${fUsd(rev)}</td><td>${fUsd(fot)}</td><td class="${net>=0?'posv':'negv'}">${fUsd(net)}</td><td>${rev>0?Math.round(net/rev*100):0}%</td></tr>`;}).join('');
+  const closedNote=closedN<12?`<p class="muted" style="margin-top:8px">В сводных показателях учтены только закрытые месяцы (с внесённой выручкой): <b>${closedN}</b>. Незакрытые месяцы не искажают рентабельность.</p>`:'';
+  document.getElementById('ov-dir').innerHTML=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Направление</th><th>Выручка YTD</th><th>ФОТ YTD</th><th>Чистая прибыль YTD</th><th>Рентаб.</th></tr></thead><tbody>${rows}</tbody></table></div>${closedNote}`;
+  const rev=[],net=[];for(let m=0;m<12;m++){const cl=monthClosed(YEAR,m);const c=consMonth(YEAR,m);rev.push(cl?Math.round(c.rev):null);net.push(cl?Math.round(c.net):null);}
   mkChart('ch-rev','bar',{labels:MN,datasets:[{label:'Выручка',data:rev,backgroundColor:'#3f7ad1'},{label:'Чистая прибыль',data:net,backgroundColor:'#1f9d6b'}]});
-  const ds=D.directions.map((d,i)=>{const a=[];for(let m=0;m<12;m++)a.push(Math.round(pnlVal(d.id,YEAR,m,'Выручка')));return{label:d.name,data:a,backgroundColor:i===0?'#6f5ae0':'#cf8500'};});
+  const ds=D.directions.map((d,i)=>{const a=[];for(let m=0;m<12;m++)a.push(monthClosed(YEAR,m)?Math.round(pnlVal(d.id,YEAR,m,'Выручка')):null);return{label:d.name,data:a,backgroundColor:i===0?'#6f5ae0':'#cf8500'};});
   mkChart('ch-dir','bar',{labels:MN,datasets:ds});
 }
 function mkChart(id,type,data){const cv=document.getElementById(id);if(!cv||!window.Chart)return;if(_ch[id])_ch[id].destroy();_ch[id]=new Chart(cv,{type,data,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{size:10},boxWidth:10}}},scales:{x:{grid:{display:false},ticks:{font:{size:9}}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:9},callback:v=>'$'+(v/1000).toFixed(0)+'k'}}}}});}
@@ -398,7 +401,9 @@ function rMonths(){
   let b=`<div class="g4">`+
     tile('Выручка',fUsd(c.rev),'b')+tile('Затраты',fUsd(c.cost),'r')+
     tile('Чистая прибыль',fUsd(c.net),c.net>=0?'g':'r')+tile('Рентабельность',(c.rev>0?Math.round(c.net/c.rev*100):0)+'%','t')+`</div>`;
-  b+=`<div class="card"><div class="ctitle"><span class="l">${MN[m]} ${YEAR} · по направлениям ${m===CM&&YEAR===CYR?'<span class="pill s">текущий</span>':''}</span></div><div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Направление</th><th>Выручка</th><th>Затраты</th><th>ФОТ</th><th>Чистая прибыль</th><th>Рентаб.</th></tr></thead><tbody>`;
+  const closed=monthClosed(YEAR,m);
+  b=`${!closed?`<div class="warn" style="margin-bottom:1rem">⚠️ Месяц не закрыт (выручка не внесена) — он <b>не учитывается</b> в сводных показателях Обзора, пока данные не внесены полностью.</div>`:''}`+b;
+  b+=`<div class="card"><div class="ctitle"><span class="l">${MN[m]} ${YEAR} · по направлениям ${m===CM&&YEAR===CYR?'<span class="pill s">текущий</span>':''}${!closed?'<span class="pill e">не закрыт</span>':''}</span></div><div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Направление</th><th>Выручка</th><th>Затраты</th><th>ФОТ</th><th>Чистая прибыль</th><th>Рентаб.</th></tr></thead><tbody>`;
   D.directions.forEach(d=>{const rev=pnlVal(d.id,YEAR,m,'Выручка'),cost=Math.abs(pnlVal(d.id,YEAR,m,'Затраты')),fot=Math.abs(pnlVal(d.id,YEAR,m,'ФОТ')),net=pnlVal(d.id,YEAR,m,'Чистая прибыль');b+=`<tr><td>${d.name}</td><td>${fUsd(rev)}</td><td>${fUsd(cost)}</td><td>${fUsd(fot)}</td><td class="${net>=0?'posv':'negv'}">${fUsd(net)}</td><td>${rev>0?Math.round(net/rev*100):0}%</td></tr>`;});
   b+=`</tbody></table></div></div>`;
   document.getElementById('mo-body').innerHTML=b;
