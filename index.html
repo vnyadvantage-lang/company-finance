@@ -49,7 +49,7 @@ body{font-family:'Manrope',-apple-system,sans-serif;background:var(--bg);color:v
 .nbtn:hover{background:var(--bg3);color:var(--text)}
 .nbtn.act{color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(22,24,18,.14)}
 .nb-ov.act{background:#475569}.nb-cf.act{background:var(--green)}.nb-pl.act{background:var(--acc)}
-.nb-mo.act{background:var(--teal)}.nb-al.act{background:var(--indigo)}.nb-st.act{background:var(--pink)}.nb-yp.act{background:var(--amber)}.nb-set.act{background:#64748b}
+.nb-mo.act{background:var(--teal)}.nb-al.act{background:var(--indigo)}.nb-st.act{background:var(--pink)}.nb-yp.act{background:var(--amber)}.nb-an.act{background:#0891b2}.nb-set.act{background:#64748b}
 .pg{display:none;max-width:1600px;margin:0 auto;padding:1.4rem 1.5rem}
 .pg.act{display:block}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem}
@@ -171,9 +171,10 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(63,12
   <button class="nbtn nb-cf" onclick="sp('cashflow',this)">💵 Cash Flow</button>
   <button class="nbtn nb-pl" onclick="sp('pnl',this)">📈 P&amp;L</button>
   <button class="nbtn nb-mo" onclick="sp('months',this)">🗓 Месяцы</button>
+  <button class="nbtn nb-yp" onclick="sp('yearplan',this)">🎯 План года</button>
+  <button class="nbtn nb-an" onclick="sp('analytics',this)">🔎 Аналитика</button>
   <button class="nbtn nb-al" onclick="sp('alloc',this)">👥 Распределение</button>
   <button class="nbtn nb-st" onclick="sp('staff',this)">🧑‍💼 Сотрудники</button>
-  <button class="nbtn nb-yp" onclick="sp('yearplan',this)">🎯 План года</button>
   <button class="nbtn nb-set" onclick="sp('settings',this)">⚙ Настройки</button>
 </div></nav>
 
@@ -233,6 +234,13 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(63,12
     <div class="ms" id="yp-months"></div><div id="yp-week"></div></div>
 </div>
 
+<div id="pg-analytics" class="pg">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:1rem">
+    <div class="seg" id="an-seg"></div><span class="muted">Сравнительная аналитика для решений — таблицы и графики.</span>
+  </div>
+  <div id="an-body"></div>
+</div>
+
 <div id="pg-settings" class="pg">
   <div class="g2">
     <div class="card cb"><div class="ctitle"><span class="l">Направления</span></div><div id="set-dirs"></div></div>
@@ -280,7 +288,7 @@ function defData(){return{
 
 /* ═══ STATE ═══ */
 let D=null,_ch={},YEAR=CYR;
-let cfDir='cons',plDir='cons',ypDir='etsy',moMonth=CM,alMonth=CM,ypMonth=CM;
+let cfDir='cons',plDir='cons',ypDir='etsy',moMonth=CM,alMonth=CM,ypMonth=CM,anView='years';
 
 /* ═══ CRYPTO ═══ */
 let _dekRaw=null,_dataKey=null,_wrapPw=null,_wrapRc=null,_loginEmail='';
@@ -324,7 +332,7 @@ function payrollTotal(year,month){let s=0;for(const e of D.employees)s+=empSalar
 /* ═══ NAV ═══ */
 function sp(id,btn){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('act'));document.getElementById('pg-'+id).classList.add('act');document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('act'));if(btn)btn.classList.add('act');curPage=id;rPage(id);}
 let curPage='overview';
-function rPage(id){({overview:rOverview,cashflow:rCashflow,pnl:rPnl,months:rMonths,alloc:rAlloc,staff:rStaff,yearplan:rYearplan,settings:rSettings}[id]||(()=>{}))();}
+function rPage(id){({overview:rOverview,cashflow:rCashflow,pnl:rPnl,months:rMonths,alloc:rAlloc,staff:rStaff,yearplan:rYearplan,analytics:rAnalytics,settings:rSettings}[id]||(()=>{}))();}
 function rAll(){rYearSel();upHdr();rPage(curPage);}
 
 /* ═══ HEADER ═══ */
@@ -545,6 +553,44 @@ function rYpWeeks(o){
   h+=`</tbody></table></div>`;
   document.getElementById('yp-week').innerHTML=h;
   document.querySelectorAll('#yp-week input[data-wk]').forEach(inp=>inp.onchange=()=>{const o=ypObj(ypDir);const wk=o.weeks[ypMonth];wk[inp.dataset.wk][+inp.dataset.w]=+inp.value||0;autoSave();rYearplan();});
+}
+
+/* ═══ ANALYTICS ═══ */
+function yearAgg(year){let rev=0,cost=0,net=0,fot=0,n=0;for(let m=0;m<12;m++){if(!monthClosed(year,m))continue;n++;rev+=consVal(year,m,'Выручка');cost+=Math.abs(consVal(year,m,'Затраты'));net+=consVal(year,m,'Чистая прибыль');fot+=Math.abs(consVal(year,m,'ФОТ'));}return{rev,cost,net,fot,n};}
+function anYears(){const ys=gridYears(D.pnl.cons);return ys.length?ys:[CYR];}
+function rAnalytics(){
+  rSeg('an-seg',anView,v=>{anView=v;rAnalytics();},[['years','Сравнение лет'],['months','Помесячно (по годам)']]);
+  if(anView==='months')return rAnMonths();
+  const ys=anYears();const agg={};ys.forEach(y=>agg[y]=yearAgg(y));
+  const pct=(a,b)=>b>0?Math.round(a/b*100)+'%':'—';
+  const KEYS={'Выручка':'rev','Затраты':'cost','ФОТ ($)':'fot','Чистая прибыль':'net'};
+  const metrics=[['Выручка',y=>fUsd(agg[y].rev)],['Затраты',y=>fUsd(agg[y].cost)],['ФОТ ($)',y=>fUsd(agg[y].fot)],['ФОТ / выручка',y=>pct(agg[y].fot,agg[y].rev)],['Чистая прибыль',y=>fUsd(agg[y].net)],['Рентабельность',y=>pct(agg[y].net,agg[y].rev)],['Закрытых месяцев',y=>agg[y].n+' / 12']];
+  const last=ys[ys.length-1],prev=ys[ys.length-2];
+  // like-for-like: сравниваем по ОДИНАКОВЫМ месяцам (закрытым в последнем году)
+  const lastMonths=[];for(let m=0;m<12;m++)if(monthClosed(last,m))lastMonths.push(m);
+  const ymAgg=(year)=>{let o={rev:0,cost:0,fot:0,net:0};lastMonths.forEach(m=>{o.rev+=consVal(year,m,'Выручка');o.cost+=Math.abs(consVal(year,m,'Затраты'));o.fot+=Math.abs(consVal(year,m,'ФОТ'));o.net+=consVal(year,m,'Чистая прибыль');});return o;};
+  const lA=prev?ymAgg(last):null,pA=prev?ymAgg(prev):null;
+  let h=`<div class="card"><div class="ctitle"><span class="l">Сравнение лет: ${ys.join(' · ')}</span></div>`;
+  h+=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Показатель</th>${ys.map(y=>`<th>${y}</th>`).join('')}<th>${prev?last+' к '+prev+'*':''}</th></tr></thead><tbody>`;
+  metrics.forEach(m=>{h+=`<tr><td>${m[0]}</td>${ys.map(y=>`<td>${m[1](y)}</td>`).join('')}`;let d='';if(prev&&KEYS[m[0]]){const k=KEYS[m[0]],a=lA[k],b=pA[k];const pc=b!==0?Math.round((a-b)/Math.abs(b)*100):0;d=`<span class="${pc>=0?'posv':'negv'}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td></tr>`;});
+  h+=`</tbody></table></div><p class="muted" style="margin-top:8px">Учтены только закрытые месяцы (с внесённой выручкой). <b>*</b> Колонка роста сравнивает <b>одинаковые месяцы</b> (${lastMonths.map(m=>MN[m]).join(', ')||'—'}) ${last} к ${prev||''} — корректно при неполном годе.</p></div>`;
+  h+=`<div class="g2"><div class="card cb"><div class="ctitle"><span class="l">Выручка / Чистая прибыль по годам</span></div><div class="cw" style="height:240px"><canvas id="an-ch1"></canvas></div></div>`;
+  h+=`<div class="card cp"><div class="ctitle"><span class="l">ФОТ по годам ($)</span></div><div class="cw" style="height:240px"><canvas id="an-ch2"></canvas></div></div></div>`;
+  document.getElementById('an-body').innerHTML=h;
+  mkChart('an-ch1','bar',{labels:ys.map(String),datasets:[{label:'Выручка',data:ys.map(y=>Math.round(agg[y].rev)),backgroundColor:'#3f7ad1'},{label:'Чистая прибыль',data:ys.map(y=>Math.round(agg[y].net)),backgroundColor:'#1f9d6b'}]});
+  mkChart('an-ch2','bar',{labels:ys.map(String),datasets:[{label:'ФОТ',data:ys.map(y=>Math.round(agg[y].fot)),backgroundColor:'#6f5ae0'}]});
+}
+function rAnMonths(){
+  const ys=anYears();const CL=['#cbd5e1','#5b9bd5','#1f9d6b','#cf8500','#d6336c'];
+  const mk=(field)=>ys.map((y,i)=>{const c=CL[i%CL.length];const a=[];for(let m=0;m<12;m++)a.push(monthClosed(y,m)?Math.round(consVal(y,m,field)):null);return{label:String(y),data:a,borderColor:c,backgroundColor:c,tension:.3,spanGaps:false};});
+  let h=`<div class="g2"><div class="card cb"><div class="ctitle"><span class="l">Выручка по месяцам (годы наложены)</span></div><div class="cw" style="height:260px"><canvas id="an-m1"></canvas></div></div>`;
+  h+=`<div class="card cg"><div class="ctitle"><span class="l">Чистая прибыль по месяцам</span></div><div class="cw" style="height:260px"><canvas id="an-m2"></canvas></div></div></div>`;
+  h+=`<div class="card"><div class="ctitle"><span class="l">Выручка помесячно по годам</span></div><div class="tw"><table class="tbl"><thead><tr><th>Год</th>${MN.map(m=>`<th>${m}</th>`).join('')}<th>Итого</th></tr></thead><tbody>`;
+  ys.forEach(y=>{let sum=0;h+=`<tr><td>${y}</td>`;for(let m=0;m<12;m++){const cl=monthClosed(y,m);const v=cl?consVal(y,m,'Выручка'):0;sum+=v;h+=`<td class="${cl?'':'z'}">${cl?fUsd(v):'—'}</td>`;}h+=`<td><b>${fUsd(sum)}</b></td></tr>`;});
+  h+=`</tbody></table></div></div>`;
+  document.getElementById('an-body').innerHTML=h;
+  mkChart('an-m1','line',{labels:MN,datasets:mk('Выручка')});
+  mkChart('an-m2','line',{labels:MN,datasets:mk('Чистая прибыль')});
 }
 
 /* ═══ SETTINGS ═══ */
