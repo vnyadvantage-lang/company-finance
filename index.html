@@ -288,7 +288,7 @@ function defData(){return{
 
 /* ═══ STATE ═══ */
 let D=null,_ch={},YEAR=CYR;
-let cfDir='cons',plDir='cons',ypDir='etsy',moMonth=CM,alMonth=CM,ypMonth=CM,anView='years';
+let cfDir='cons',plDir='cons',ypDir='etsy',moMonth=CM,alMonth=CM,ypMonth=CM,anView='years',anMetric='Выручка';
 
 /* ═══ CRYPTO ═══ */
 let _dekRaw=null,_dataKey=null,_wrapPw=null,_wrapRc=null,_loginEmail='';
@@ -581,16 +581,34 @@ function rAnalytics(){
   mkChart('an-ch2','bar',{labels:ys.map(String),datasets:[{label:'ФОТ',data:ys.map(y=>Math.round(agg[y].fot)),backgroundColor:'#6f5ae0'}]});
 }
 function rAnMonths(){
-  const ys=anYears();const CL=['#cbd5e1','#5b9bd5','#1f9d6b','#cf8500','#d6336c'];
-  const mk=(field)=>ys.map((y,i)=>{const c=CL[i%CL.length];const a=[];for(let m=0;m<12;m++)a.push(monthClosed(y,m)?Math.round(consVal(y,m,field)):null);return{label:String(y),data:a,borderColor:c,backgroundColor:c,tension:.3,spanGaps:false};});
-  let h=`<div class="g2"><div class="card cb"><div class="ctitle"><span class="l">Выручка по месяцам (годы наложены)</span></div><div class="cw" style="height:260px"><canvas id="an-m1"></canvas></div></div>`;
-  h+=`<div class="card cg"><div class="ctitle"><span class="l">Чистая прибыль по месяцам</span></div><div class="cw" style="height:260px"><canvas id="an-m2"></canvas></div></div></div>`;
-  h+=`<div class="card"><div class="ctitle"><span class="l">Выручка помесячно по годам</span></div><div class="tw"><table class="tbl"><thead><tr><th>Год</th>${MN.map(m=>`<th>${m}</th>`).join('')}<th>Итого</th></tr></thead><tbody>`;
-  ys.forEach(y=>{let sum=0;h+=`<tr><td>${y}</td>`;for(let m=0;m<12;m++){const cl=monthClosed(y,m);const v=cl?consVal(y,m,'Выручка'):0;sum+=v;h+=`<td class="${cl?'':'z'}">${cl?fUsd(v):'—'}</td>`;}h+=`<td><b>${fUsd(sum)}</b></td></tr>`;});
-  h+=`</tbody></table></div></div>`;
+  const ys=anYears();const CL=['#94a3b8','#5b9bd5','#cf8500','#1f9d6b','#d6336c'];
+  const METRICS=[['Выручка','Выручка'],['Чистая прибыль','Чистая прибыль'],['Затраты','Затраты'],['ФОТ','ФОТ']];
+  if(!METRICS.find(x=>x[0]===anMetric))anMetric='Выручка';
+  const rowName=anMetric, signAbs=(anMetric==='Затраты'||anMetric==='ФОТ');
+  const val=(y,m)=>{if(!monthClosed(y,m))return null;const raw=consVal(y,m,rowName);return signAbs?Math.abs(Math.round(raw)):Math.round(raw);};
+  let h=`<div class="seg" id="an-metric" style="margin-bottom:1rem">${METRICS.map(m=>`<button class="${m[0]===anMetric?'act':''}" data-m="${m[0]}">${m[0]}</button>`).join('')}</div>`;
+  h+=`<div class="g2">
+    <div class="card cb"><div class="ctitle"><span class="l">${anMetric}: каждый месяц по годам (сезонность)</span></div><div class="cw" style="height:280px"><canvas id="an-mbar"></canvas></div></div>
+    <div class="card cp"><div class="ctitle"><span class="l">${anMetric}: тренд по месяцам (годы наложены)</span></div><div class="cw" style="height:280px"><canvas id="an-mline"></canvas></div></div>
+  </div>`;
+  h+=`<div class="card"><div class="ctitle"><span class="l">${anMetric}: каждый месяц по годам + рост к прошлому году</span></div><div class="tw"><table class="tbl"><thead><tr><th>Месяц</th>${ys.map(y=>`<th>${y}</th>`).join('')}${ys.slice(1).map((y,i)=>`<th>${y} к ${ys[i]}</th>`).join('')}</tr></thead><tbody>`;
+  for(let m=0;m<12;m++){
+    h+=`<tr><td>${MN[m]}${m===CM&&YEAR===CYR?' •':''}</td>`;
+    ys.forEach(y=>{const v=val(y,m);h+=`<td class="${v==null?'z':''}">${v==null?'—':fUsd(v)}</td>`;});
+    ys.slice(1).forEach((y,i)=>{const a=val(y,m),b=val(ys[i],m);let d='—';if(a!=null&&b!=null&&b!==0){const pc=Math.round((a-b)/Math.abs(b)*100);d=`<span class="${pc>=0?'posv':'negv'}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td>`;});
+    h+=`</tr>`;
+  }
+  // итоговая строка по закрытым месяцам
+  h+=`<tr class="bold"><td>Итого (закр.)</td>`;
+  const tot={};ys.forEach(y=>{let s=0;for(let m=0;m<12;m++){const v=val(y,m);if(v!=null)s+=v;}tot[y]=s;h+=`<td>${fUsd(s)}</td>`;});
+  ys.slice(1).forEach((y,i)=>{const a=tot[y],b=tot[ys[i]];let d='—';if(b){const pc=Math.round((a-b)/Math.abs(b)*100);d=`<span class="${pc>=0?'posv':'negv'}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td>`;});
+  h+=`</tr></tbody></table></div><p class="muted" style="margin-top:8px">Прочерк — месяц ещё не закрыт. Рост сравнивает один и тот же месяц год к году (учитывает сезонность).</p></div>`;
   document.getElementById('an-body').innerHTML=h;
-  mkChart('an-m1','line',{labels:MN,datasets:mk('Выручка')});
-  mkChart('an-m2','line',{labels:MN,datasets:mk('Чистая прибыль')});
+  document.querySelectorAll('#an-metric button').forEach(b=>b.onclick=()=>{anMetric=b.dataset.m;rAnMonths();});
+  const barDs=ys.map((y,i)=>({label:String(y),data:Array.from({length:12},(_,m)=>val(y,m)),backgroundColor:CL[i%CL.length]}));
+  mkChart('an-mbar','bar',{labels:MN,datasets:barDs});
+  const lineDs=ys.map((y,i)=>({label:String(y),data:Array.from({length:12},(_,m)=>val(y,m)),borderColor:CL[i%CL.length],backgroundColor:CL[i%CL.length],tension:.3,spanGaps:false}));
+  mkChart('an-mline','line',{labels:MN,datasets:lineDs});
 }
 
 /* ═══ SETTINGS ═══ */
