@@ -107,6 +107,8 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(63,12
 .tbl input:hover{border-color:var(--brd2);background:#fff}
 .tbl input:focus{border-color:var(--acc);background:#fff;box-shadow:0 0 0 2px rgba(63,122,209,.1)}
 .posv{color:var(--green)!important}.negv{color:var(--red)!important}
+.tbl td.ghi{background:rgba(31,157,107,.16)!important;color:#15795a!important;font-weight:700}
+.tbl td.rhi{background:rgba(224,96,58,.10)!important;color:#b4451f!important}
 .deprow td{background:var(--bg3)!important;color:var(--acc2);font-weight:700;font-size:10px;letter-spacing:.5px;text-transform:uppercase}
 .deprow td:first-child{background:var(--bg3)!important;color:var(--acc2)}
 .moverlay{display:none;position:fixed;inset:0;background:rgba(28,29,31,.4);z-index:200;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem}
@@ -571,7 +573,7 @@ function rAnalytics(){
   const ymAgg=(year)=>{let o={rev:0,cost:0,fot:0,net:0};lastMonths.forEach(m=>{o.rev+=consVal(year,m,'Выручка');o.cost+=Math.abs(consVal(year,m,'Затраты'));o.fot+=Math.abs(consVal(year,m,'ФОТ'));o.net+=consVal(year,m,'Чистая прибыль');});return o;};
   const lA=prev?ymAgg(last):null,pA=prev?ymAgg(prev):null;
   let h=`<div class="card"><div class="ctitle"><span class="l">Сравнение лет: ${ys.join(' · ')}</span></div>`;
-  h+=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Показатель</th>${ys.map(y=>`<th>${y}</th>`).join('')}<th>${prev?last+' к '+prev+'*':''}</th></tr></thead><tbody>`;
+  h+=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Показатель</th>${ys.map(y=>`<th${y===last?' style="color:var(--green)"':''}>${y}${agg[y].n<12?' ('+agg[y].n+' мес)':''}</th>`).join('')}<th>${prev?last+' к '+prev+'*':''}</th></tr></thead><tbody>`;
   metrics.forEach(m=>{h+=`<tr><td>${m[0]}</td>${ys.map(y=>`<td>${m[1](y)}</td>`).join('')}`;let d='';if(prev&&KEYS[m[0]]){const k=KEYS[m[0]],a=lA[k],b=pA[k];const pc=b!==0?Math.round((a-b)/Math.abs(b)*100):0;d=`<span class="${pc>=0?'posv':'negv'}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td></tr>`;});
   h+=`</tbody></table></div><p class="muted" style="margin-top:8px">Учтены только закрытые месяцы (с внесённой выручкой). <b>*</b> Колонка роста сравнивает <b>одинаковые месяцы</b> (${lastMonths.map(m=>MN[m]).join(', ')||'—'}) ${last} к ${prev||''} — корректно при неполном годе.</p></div>`;
   h+=`<div class="g2"><div class="card cb"><div class="ctitle"><span class="l">Выручка / Чистая прибыль по годам</span></div><div class="cw" style="height:240px"><canvas id="an-ch1"></canvas></div></div>`;
@@ -581,33 +583,34 @@ function rAnalytics(){
   mkChart('an-ch2','bar',{labels:ys.map(String),datasets:[{label:'ФОТ',data:ys.map(y=>Math.round(agg[y].fot)),backgroundColor:'#6f5ae0'}]});
 }
 function rAnMonths(){
-  const ys=anYears();const CL=['#94a3b8','#5b9bd5','#cf8500','#1f9d6b','#d6336c'];
-  const METRICS=[['Выручка','Выручка'],['Чистая прибыль','Чистая прибыль'],['Затраты','Затраты'],['ФОТ','ФОТ']];
-  if(!METRICS.find(x=>x[0]===anMetric))anMetric='Выручка';
-  const rowName=anMetric, signAbs=(anMetric==='Затраты'||anMetric==='ФОТ');
-  const val=(y,m)=>{if(!monthClosed(y,m))return null;const raw=consVal(y,m,rowName);return signAbs?Math.abs(Math.round(raw)):Math.round(raw);};
-  let h=`<div class="seg" id="an-metric" style="margin-bottom:1rem">${METRICS.map(m=>`<button class="${m[0]===anMetric?'act':''}" data-m="${m[0]}">${m[0]}</button>`).join('')}</div>`;
-  h+=`<div class="g2">
-    <div class="card cb"><div class="ctitle"><span class="l">${anMetric}: каждый месяц по годам (сезонность)</span></div><div class="cw" style="height:280px"><canvas id="an-mbar"></canvas></div></div>
-    <div class="card cp"><div class="ctitle"><span class="l">${anMetric}: тренд по месяцам (годы наложены)</span></div><div class="cw" style="height:280px"><canvas id="an-mline"></canvas></div></div>
-  </div>`;
-  h+=`<div class="card"><div class="ctitle"><span class="l">${anMetric}: каждый месяц по годам + рост к прошлому году</span></div><div class="tw"><table class="tbl"><thead><tr><th>Месяц</th>${ys.map(y=>`<th>${y}</th>`).join('')}${ys.slice(1).map((y,i)=>`<th>${y} к ${ys[i]}</th>`).join('')}</tr></thead><tbody>`;
+  const ys=anYears();const maxY=Math.max(...ys);const OTHER=['#94a3b8','#5b9bd5','#cf8500','#d6336c'];
+  const METRICS=['Выручка','Чистая прибыль','Затраты','ФОТ'];
+  if(!METRICS.includes(anMetric))anMetric='Выручка';
+  const signAbs=(anMetric==='Затраты'||anMetric==='ФОТ'),lowerBetter=signAbs;
+  const val=(y,m)=>{if(!monthClosed(y,m))return null;const raw=consVal(y,m,anMetric);return signAbs?Math.abs(Math.round(raw)):Math.round(raw);};
+  const better=(a,b)=>(a==null||b==null)?null:(lowerBetter?a<b:a>b);
+  const col=(y,i)=>y===maxY?'#1f9d6b':OTHER[i%OTHER.length];
+  let h=`<div class="seg" id="an-metric" style="margin-bottom:1rem">${METRICS.map(m=>`<button class="${m===anMetric?'act':''}" data-m="${m}">${m}</button>`).join('')}</div>`;
+  // ── ТАБЛИЦА ПЕРВОЙ ──
+  h+=`<div class="card"><div class="ctitle"><span class="l">${anMetric}: каждый месяц по годам — зелёным где лучше прошлого года</span></div>`;
+  h+=`<div class="tw"><table class="tbl"><thead><tr><th>Месяц</th>${ys.map(y=>`<th${y===maxY?' style="color:var(--green)"':''}>${y}${y===maxY?' • тек.':''}</th>`).join('')}${ys.slice(1).map((y,i)=>`<th>${y} к ${ys[i]}</th>`).join('')}</tr></thead><tbody>`;
   for(let m=0;m<12;m++){
-    h+=`<tr><td>${MN[m]}${m===CM&&YEAR===CYR?' •':''}</td>`;
-    ys.forEach(y=>{const v=val(y,m);h+=`<td class="${v==null?'z':''}">${v==null?'—':fUsd(v)}</td>`;});
-    ys.slice(1).forEach((y,i)=>{const a=val(y,m),b=val(ys[i],m);let d='—';if(a!=null&&b!=null&&b!==0){const pc=Math.round((a-b)/Math.abs(b)*100);d=`<span class="${pc>=0?'posv':'negv'}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td>`;});
+    h+=`<tr><td>${MN[m]}</td>`;
+    ys.forEach((y,yi)=>{const v=val(y,m);let cls=v==null?'z':'';if(v!=null&&yi>0){const bt=better(v,val(ys[yi-1],m));if(bt===true)cls='ghi';else if(bt===false)cls='rhi';}h+=`<td class="${cls}">${v==null?'—':fUsd(v)}</td>`;});
+    ys.slice(1).forEach((y,i)=>{const a=val(y,m),b=val(ys[i],m);let d='—';if(a!=null&&b!=null&&b!==0){const pc=Math.round((a-b)/Math.abs(b)*100);const good=lowerBetter?pc<=0:pc>=0;d=`<span class="${good?'posv':'negv'}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td>`;});
     h+=`</tr>`;
   }
-  // итоговая строка по закрытым месяцам
-  h+=`<tr class="bold"><td>Итого (закр.)</td>`;
-  const tot={};ys.forEach(y=>{let s=0;for(let m=0;m<12;m++){const v=val(y,m);if(v!=null)s+=v;}tot[y]=s;h+=`<td>${fUsd(s)}</td>`;});
-  ys.slice(1).forEach((y,i)=>{const a=tot[y],b=tot[ys[i]];let d='—';if(b){const pc=Math.round((a-b)/Math.abs(b)*100);d=`<span class="${pc>=0?'posv':'negv'}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td>`;});
-  h+=`</tr></tbody></table></div><p class="muted" style="margin-top:8px">Прочерк — месяц ещё не закрыт. Рост сравнивает один и тот же месяц год к году (учитывает сезонность).</p></div>`;
+  h+=`<tr class="bold"><td>Итого (закр.)</td>`;const tot={};ys.forEach(y=>{let s=0,any=false;for(let m=0;m<12;m++){const v=val(y,m);if(v!=null){s+=v;any=true;}}tot[y]=any?s:null;h+=`<td>${tot[y]==null?'—':fUsd(tot[y])}</td>`;});
+  ys.slice(1).forEach((y,i)=>{const a=tot[y],b=tot[ys[i]];let d='—';if(a!=null&&b){const pc=Math.round((a-b)/Math.abs(b)*100);const good=lowerBetter?pc<=0:pc>=0;d=`<span class="${good?'posv':'negv'}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td>`;});
+  h+=`</tr></tbody></table></div><p class="muted" style="margin-top:8px">🟩 Зелёным — месяцы, где «${anMetric.toLowerCase()}» лучше того же месяца прошлого года${lowerBetter?' (для затрат/ФОТ «лучше» = меньше)':''}. Текущий год — <b>${maxY}</b>. Рост считается месяц-к-месяцу (учитывает сезонность). Прочерк — месяц не закрыт.</p></div>`;
+  // ── ГРАФИКИ НА ВСЮ ШИРИНУ, ОДИН ПОД ДРУГИМ ──
+  h+=`<div class="card cb"><div class="ctitle"><span class="l">${anMetric}: сравнение каждого месяца по годам (текущий год — зелёный)</span></div><div class="cw" style="height:360px"><canvas id="an-mbar"></canvas></div></div>`;
+  h+=`<div class="card cp"><div class="ctitle"><span class="l">${anMetric}: тренд по месяцам (сезонность, годы наложены)</span></div><div class="cw" style="height:320px"><canvas id="an-mline"></canvas></div></div>`;
   document.getElementById('an-body').innerHTML=h;
   document.querySelectorAll('#an-metric button').forEach(b=>b.onclick=()=>{anMetric=b.dataset.m;rAnMonths();});
-  const barDs=ys.map((y,i)=>({label:String(y),data:Array.from({length:12},(_,m)=>val(y,m)),backgroundColor:CL[i%CL.length]}));
+  const barDs=ys.map((y,i)=>({label:String(y),data:Array.from({length:12},(_,m)=>val(y,m)),backgroundColor:col(y,i),borderRadius:3}));
   mkChart('an-mbar','bar',{labels:MN,datasets:barDs});
-  const lineDs=ys.map((y,i)=>({label:String(y),data:Array.from({length:12},(_,m)=>val(y,m)),borderColor:CL[i%CL.length],backgroundColor:CL[i%CL.length],tension:.3,spanGaps:false}));
+  const lineDs=ys.map((y,i)=>({label:String(y),data:Array.from({length:12},(_,m)=>val(y,m)),borderColor:col(y,i),backgroundColor:col(y,i),borderWidth:y===maxY?3:1.5,tension:.3,spanGaps:false}));
   mkChart('an-mline','line',{labels:MN,datasets:lineDs});
 }
 
