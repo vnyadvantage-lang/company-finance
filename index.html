@@ -850,7 +850,10 @@ function ypCompareView(yr,m){
 }
 
 /* ═══ ЦЕНЫ (юнит-экономика по размерам) ═══ */
-async function loadPrices(){try{const r=await fetch('prices-data.json?cb='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const np=await r.json();if(D.prices){['pch','hm'].forEach(k=>{if(D.prices[k]&&np[k])np[k].rows.forEach((row,i)=>{const old=D.prices[k].rows[i];if(old&&old.priceNew!=null)row.priceNew=old.priceNew;});});}D.prices=np;await persist();rPrices();toast('Цены загружены ✓');}catch{toast('prices-data.json не найден рядом с index.html','err');}}
+function applyPrices(np){if(D.prices){['pch','hm'].forEach(k=>{if(D.prices[k]&&np[k])np[k].rows.forEach((row,i)=>{const old=D.prices[k].rows[i];if(old&&old.priceNew!=null)row.priceNew=old.priceNew;});});}D.prices=np;}
+async function loadPrices(){try{const r=await fetch('prices-data.json?cb='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const np=await r.json();applyPrices(np);await persist();rPrices();toast('Цены загружены ✓');}catch{toast('prices-data.json не найден рядом с index.html','err');}}
+// импорт цен из выбранного файла (работает и на GitHub: файл берётся с компьютера, цены уходят в облако)
+function importPricesFile(inp){const f=inp.files&&inp.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const np=JSON.parse(rd.result);if(!np||!((np.pch&&np.pch.rows&&np.pch.rows.length)||(np.hm&&np.hm.rows&&np.hm.rows.length)))throw 0;applyPrices(np);persist();rPrices();toast('Цены загружены из файла ✓ — сохранены в облако');}catch{toast('Не тот файл. Нужен prices-data.json с ценами','err');}};rd.readAsText(f);}
 const PC_COL={'Дизайнер':'#6f5ae0','Печать':'#3f7ad1','Художник':'#cf8500','Справка':'#0d9488','Доставка':'#5b9bd5','Пошлина':'#d6336c','НП':'#94a3b8','Комиссии':'#e0603a','ФОТ сдельный':'#b06ab3','Маржа':'#1f9d6b'};
 function pcEff(r){const p=r.priceNew!=null?+r.priceNew:+r.price;const cogs=+r.cogs||0;const mP=p-cogs;return{p,cogs,mP,mp:p>0?mP/p:0,edited:r.priceNew!=null&&+r.priceNew!==+r.price};}
 function pcThr(tab,fld,def){const o=D.priceThr&&D.priceThr[tab];return (o&&o[fld]!=null&&o[fld]!=='')?+o[fld]:def;}
@@ -860,7 +863,7 @@ function rPrices(){
   const body=document.getElementById('pc-body');
   rSeg('pc-seg',pricesTab,v=>{pricesTab=v;rPrices();},[['pch','ПЧ'],['hm','ХМ']]);
   if(!D.prices||!D.prices[pricesTab]||!(D.prices[pricesTab].rows||[]).length){
-    body.innerHTML=`<div class="card"><div class="ctitle"><span class="l">Цены не загружены</span></div><p class="muted" style="margin-bottom:12px">Импортируйте юнит-экономику из локального файла <b>prices-data.json</b> (лежит рядом с index.html). Данные сохранятся в зашифрованном виде.</p><button class="btn btn-pr" onclick="loadPrices()">⟳ Импортировать цены</button></div>`;
+    body.innerHTML=`<div class="card"><div class="ctitle"><span class="l">Цены не загружены</span></div><p class="muted" style="margin-bottom:12px">Выберите файл <b>prices-data.json</b> со своего компьютера — цены загрузятся и <b>сохранятся в облако</b> (зашифровано). После этого они будут подтягиваться на всех устройствах и на сайте автоматически — повторять не нужно.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn btn-pr" style="cursor:pointer">📁 Выбрать файл prices-data.json<input type="file" accept=".json,application/json" style="display:none" onchange="importPricesFile(this)"></label><button class="btn btn-gh" onclick="loadPrices()">⟳ Из папки рядом (локально)</button></div></div>`;
     return;
   }
   const ds=D.prices[pricesTab],rows=ds.rows;const idxOf=new Map(rows.map((r,i)=>[r,i]));
