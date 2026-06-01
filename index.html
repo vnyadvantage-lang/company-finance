@@ -130,6 +130,11 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(63,12
 ::-webkit-scrollbar{width:7px;height:7px}::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:4px}
 .pill{display:inline-block;padding:2px 8px;border-radius:7px;font-size:10px;font-weight:700}
 .pill.s{background:rgba(63,122,209,.12);color:var(--acc2)}.pill.e{background:rgba(111,90,224,.12);color:var(--indigo)}
+.ypres{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:7px;margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--brd)}
+.ypres .mini{background:var(--bg3);border-radius:8px;padding:7px 9px;font-size:11px;color:var(--text2);line-height:1.5}
+.ypres .mini b{color:var(--text);font-family:'JetBrains Mono',monospace;font-weight:700;display:block;font-size:12.5px}
+.kpct{font-size:12px;font-weight:700;padding:2px 9px;border-radius:7px}
+.kpct.pos{background:rgba(31,157,107,.12);color:var(--green)}.kpct.neg{background:rgba(224,96,58,.12);color:var(--red)}
 </style>
 </head>
 <body>
@@ -228,12 +233,12 @@ input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(63,12
 </div>
 
 <div id="pg-yearplan" class="pg">
-  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:1rem">
-    <div class="seg" id="yp-seg"></div><span class="muted">Лиды × конверсия = продажи; продажи × средний чек = выручка. План — на текущий и будущие месяцы; факт вносим по закрытым.</span>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:.8rem">
+    <div class="seg" id="yp-mode"></div>
+    <span class="muted">План по каналам (как в калькуляторе): Etsy ПЧ/ХМ — двухстадийная конверсия (самост. покупки + отдел продаж); E-com — каналы. Выберите месяц; вносите план и факт.</span>
   </div>
-  <div class="card" style="padding:0;overflow:hidden;margin-bottom:1rem"><div id="yp-table"></div></div>
-  <div class="card cp"><div class="ctitle"><span class="l"><span class="dot p"></span>Понедельный темп (pacing) — выберите месяц</span></div>
-    <div class="ms" id="yp-months"></div><div id="yp-week"></div></div>
+  <div class="ms" id="yp-months"></div>
+  <div id="yp-body"></div>
 </div>
 
 <div id="pg-analytics" class="pg">
@@ -290,7 +295,7 @@ function defData(){return{
 
 /* ═══ STATE ═══ */
 let D=null,_ch={},YEAR=CYR;
-let cfDir='cons',plDir='cons',ypDir='etsy',moMonth=CM,alMonth=CM,ypMonth=CM,anView='years',anMetric='Выручка';
+let cfDir='cons',plDir='cons',ypDir='etsy',moMonth=CM,alMonth=CM,ypMonth=CM,ypMode='plan',anView='years',anMetric='Выручка';
 
 /* ═══ CRYPTO ═══ */
 let _dekRaw=null,_dataKey=null,_wrapPw=null,_wrapRc=null,_loginEmail='';
@@ -508,53 +513,59 @@ function rAlControl(){
   document.querySelectorAll('#al-control input[data-key]').forEach(inp=>inp.onchange=()=>{const k=inp.dataset.key;if(!D.deptControls[k])D.deptControls[k]={};D.deptControls[k][inp.dataset.fld]=+inp.value||0;autoSave();rAlControl();});
 }
 
-/* ═══ YEAR PLAN ═══ */
-function ypObj(dir){const s=D.yearPlan[YEAR]||(D.yearPlan[YEAR]={});let o=s[dir];
-  if(!o)o={plan:{leads:z12(),conv:z12(),check:z12()},fact:{leads:z12(),conv:z12(),check:z12()},weeks:{}};
-  if(o.leads&&!o.plan)o={plan:{leads:o.leads,conv:o.conv,check:o.check},fact:{leads:z12(),conv:z12(),check:z12()},weeks:{}}; // миграция старого формата
-  if(!o.plan)o.plan={leads:z12(),conv:z12(),check:z12()};
-  if(!o.fact)o.fact={leads:z12(),conv:z12(),check:z12()};
-  if(!o.weeks)o.weeks={};
-  s[dir]=o;return o;}
-function ypSales(b,m){return (+b.leads[m]||0)*((+b.conv[m]||0)/100);}
-function ypRev(b,m){return ypSales(b,m)*(+b.check[m]||0);}
-function rYearplan(){rSeg('yp-seg',ypDir,v=>{ypDir=v;rYearplan();},segDirs());const o=ypObj(ypDir);
-  const rows=[['leads','Лиды','n'],['conv','Конверсия, %','%'],['check','Средний чек, $','$']];
-  let h=`<div class="tw"><table class="tbl"><thead><tr><th>Показатель · ${YEAR}</th>${MN.map((m,i)=>`<th class="${i===CM&&YEAR===CYR?'cur':''}">${m}</th>`).join('')}<th>Год</th></tr></thead><tbody>`;
-  // ПЛАН
-  h+=`<tr class="bold"><td colspan="14">ПЛАН</td></tr>`;
-  rows.forEach(r=>{const a=o.plan[r[0]];let sum=0;h+=`<tr><td>${r[1]}</td>`;for(let m=0;m<12;m++){sum+=+a[m]||0;h+=`<td class="${m===CM&&YEAR===CYR?'cur':''}"><input data-b="plan" data-yp="${r[0]}" data-m="${m}" value="${a[m]||''}" inputmode="decimal"></td>`;}h+=`<td><b>${r[2]==='n'?Math.round(sum):r[2]==='%'?(Math.round(sum/12))+'%':'$'+Math.round(sum/12)}</b></td></tr>`;});
-  let pS=0,pR=0,sr=`<tr><td>Продажи (расч.)</td>`,rr=`<tr><td>Выручка (расч.)</td>`;
-  for(let m=0;m<12;m++){const s=ypSales(o.plan,m),rv=ypRev(o.plan,m);pS+=s;pR+=rv;sr+=`<td>${Math.round(s)}</td>`;rr+=`<td>${fUsd(rv)}</td>`;}
-  h+=sr+`<td><b>${Math.round(pS)}</b></td></tr>`+rr+`<td><b>${fUsd(pR)}</b></td></tr>`;
-  // ФАКТ
-  h+=`<tr class="bold"><td colspan="14">ФАКТ</td></tr>`;
-  rows.forEach(r=>{const a=o.fact[r[0]];let sum=0;h+=`<tr><td>${r[1]}</td>`;for(let m=0;m<12;m++){sum+=+a[m]||0;h+=`<td class="${m===CM&&YEAR===CYR?'cur':''}"><input data-b="fact" data-yp="${r[0]}" data-m="${m}" value="${a[m]||''}" inputmode="decimal"></td>`;}h+=`<td><b>${r[2]==='n'?Math.round(sum):r[2]==='%'?(Math.round(sum/12))+'%':'$'+Math.round(sum/12)}</b></td></tr>`;});
-  let fR=0,frr=`<tr><td>Выручка факт (расч.)</td>`;for(let m=0;m<12;m++){const rv=ypRev(o.fact,m);fR+=rv;frr+=`<td>${fUsd(rv)}</td>`;}h+=frr+`<td><b>${fUsd(fR)}</b></td></tr>`;
-  // СРАВНЕНИЕ
-  h+=`<tr class="bold"><td>Выполнение выручки, %</td>`;for(let m=0;m<12;m++){const p=ypRev(o.plan,m),f=ypRev(o.fact,m);const pc=p>0?Math.round(f/p*100):0;h+=`<td class="${pc>=100?'posv':pc>0?'negv':''}">${p>0?pc+'%':'—'}</td>`;}h+=`<td><b>${pR>0?Math.round(fR/pR*100):0}%</b></td></tr>`;
-  h+=`</tbody></table></div>`;document.getElementById('yp-table').innerHTML=h;
-  document.querySelectorAll('#yp-table input[data-yp]').forEach(inp=>inp.onchange=()=>{const o=ypObj(ypDir);o[inp.dataset.b][inp.dataset.yp][+inp.dataset.m]=+inp.value||0;autoSave();rYearplan();});
-  rYpWeeks(o);
-}
-function rYpWeeks(o){
+/* ═══ YEAR PLAN 2.0 — по калькулятору, каналы ═══ */
+const YP_CH=[
+ {id:'pch',dir:'etsy',name:'Etsy · ПЧ (печать)',type:'etsy2',cls:'cb'},
+ {id:'hm',dir:'etsy',name:'Etsy · ХМ (хендмейд)',type:'etsy2',cls:'cb'},
+ {id:'seo',dir:'ecom',name:'E-com · SEO',type:'ecom1',cls:'ct'},
+ {id:'meta',dir:'ecom',name:'E-com · Meta',type:'ecom1',cls:'ct'},
+ {id:'email',dir:'ecom',name:'E-com · Email',type:'ecom1',cls:'ct'},
+ {id:'blog',dir:'ecom',name:'E-com · Блоггеры',type:'ecom1',cls:'ca'},
+];
+const YP_DEF={
+ pch:{leads:216,c1:27.5,c2:55,check:550,adv:5550,fot:25130,ovhd:2659,margin:54},
+ hm:{leads:20,c1:27.5,c2:55,check:730,adv:1200,fot:3220,ovhd:341,margin:47},
+ seo:{leads:5,conv:60,check:450,adv:4600,fot:618,ovhd:0,margin:59},
+ meta:{leads:133,conv:6.8,check:450,adv:4250,fot:1853,ovhd:0,margin:59},
+ email:{leads:7,conv:50,check:450,adv:950,fot:824,ovhd:0,margin:59},
+ blog:{leads:1,conv:100,check:450,adv:1500,fot:206,ovhd:0,margin:59},
+};
+function ypBlank(){return{leads:z12(),c1:z12(),c2:z12(),conv:z12(),check:z12(),adv:z12()};}
+function yp2(year,chId){const s=D.yp2[year]||(D.yp2[year]={});if(!s[chId]){const d=YP_DEF[chId];s[chId]={plan:ypBlank(),fact:ypBlank(),fot:d.fot,ovhd:d.ovhd,margin:d.margin};}return s[chId];}
+function seedYp2(){if(D.meta.yp2seeded)return false;for(const ch of YP_CH){const o=yp2(2026,ch.id);const d=YP_DEF[ch.id];const p=o.plan;p.leads[5]=d.leads;p.check[5]=d.check;p.adv[5]=d.adv;if(ch.type==='etsy2'){p.c1[5]=d.c1;p.c2[5]=d.c2;}else p.conv[5]=d.conv;}D.meta.yp2seeded=true;return true;}
+function ypCalc(ch,year,month,mode){const o=yp2(year,ch.id),p=o[mode];const leads=+p.leads[month]||0,check=+p.check[month]||0,adv=+p.adv[month]||0,fot=+o.fot||0,ovhd=+o.ovhd||0,margin=(+o.margin||0)/100;let self=0,after=0,orders=0;if(ch.type==='etsy2'){const c1=(+p.c1[month]||0)/100,c2=(+p.c2[month]||0)/100;self=Math.round(leads*c1);after=Math.round((leads-self)*c2);orders=self+after;}else{const conv=(+p.conv[month]||0)/100;orders=Math.round(leads*conv);}const rev=orders*check,marginAmt=rev*margin,costs=adv+fot+ovhd,profit=marginAmt-costs;return{leads,self,after,orders,rev,marginAmt,costs,profit};}
+function rYearplan(){
+  rSeg('yp-mode',ypMode,v=>{ypMode=v;rYearplan();},[['plan','План'],['fact','Факт']]);
   document.getElementById('yp-months').innerHTML=MN.map((m,i)=>`<button class="mb ${i===ypMonth?'act':''} ${i===CM&&YEAR===CYR?'cur':''}" onclick="ypMonth=${i};rYearplan()">${m}</button>`).join('');
-  const m=ypMonth;const planLeads=+o.plan.leads[m]||0, planRev=ypRev(o.plan,m);
-  const wk=o.weeks[m]||(o.weeks[m]={leads:[0,0,0,0,0],rev:[0,0,0,0,0]});
-  if(!wk.leads)wk.leads=[0,0,0,0,0];if(!wk.rev)wk.rev=[0,0,0,0,0];
-  const W=4.345;const tgtLeadsWk=planLeads/W, tgtRevWk=planRev/W;
-  const factLeads=wk.leads.reduce((a,b)=>a+(+b||0),0), factRev=wk.rev.reduce((a,b)=>a+(+b||0),0);
-  let h=`<p class="muted" style="margin-bottom:10px">Месяц <b>${MN[m]} ${YEAR}</b> · направление <b>${dirName(ypDir)}</b>. План: лиды <b>${Math.round(planLeads)}</b>, выручка <b>${fUsd(planRev)}</b>. Нужный средний темп: <b>${Math.round(tgtLeadsWk)}</b> лидов/нед · <b>${fUsd(tgtRevWk)}</b>/нед.</p>`;
-  h+=`<div class="tw"><table class="tbl" style="min-width:560px"><thead><tr><th>Неделя</th><th>Цель лидов</th><th>Факт лидов</th><th>Цель выручки</th><th>Факт выручки</th><th>Темп</th></tr></thead><tbody>`;
-  for(let w=0;w<5;w++){
-    const fl=+wk.leads[w]||0, fr=+wk.rev[w]||0;const ok=fr>=tgtRevWk&&tgtRevWk>0;
-    h+=`<tr><td>Неделя ${w+1}</td><td>${Math.round(tgtLeadsWk)}</td><td><input data-wk="leads" data-w="${w}" value="${wk.leads[w]||''}" inputmode="decimal"></td><td>${fUsd(tgtRevWk)}</td><td><input data-wk="rev" data-w="${w}" value="${wk.rev[w]||''}" inputmode="decimal"></td><td>${fr>0?(ok?'<span class="posv">✓ темп</span>':'<span class="negv">ниже</span>'):'—'}</td></tr>`;
-  }
-  const leadPc=planLeads>0?Math.round(factLeads/planLeads*100):0, revPc=planRev>0?Math.round(factRev/planRev*100):0;
-  h+=`<tr class="bold"><td>Итого факт</td><td>${Math.round(planLeads)}</td><td>${Math.round(factLeads)} (${leadPc}%)</td><td>${fUsd(planRev)}</td><td>${fUsd(factRev)} (${revPc}%)</td><td>${revPc>=100?'<span class="posv">опережение</span>':factRev>0?'<span class="negv">отставание</span>':'—'}</td></tr>`;
-  h+=`</tbody></table></div>`;
-  document.getElementById('yp-week').innerHTML=h;
-  document.querySelectorAll('#yp-week input[data-wk]').forEach(inp=>inp.onchange=()=>{const o=ypObj(ypDir);const wk=o.weeks[ypMonth];wk[inp.dataset.wk][+inp.dataset.w]=+inp.value||0;autoSave();rYearplan();});
+  const yr=YEAR,m=ypMonth,mode=ypMode;
+  const sum={leads:0,orders:0,rev:0,marginAmt:0,costs:0,profit:0};
+  YP_CH.forEach(ch=>{const c=ypCalc(ch,yr,m,mode);sum.leads+=c.leads;sum.orders+=c.orders;sum.rev+=c.rev;sum.marginAmt+=c.marginAmt;sum.costs+=c.costs;sum.profit+=c.profit;});
+  const tg=(l,v,c)=>`<div class="kpi"><div class="kpi-l"><span class="kl">${l}</span><span class="kv ${c||''}">${v}</span></div></div>`;
+  let h=`<div class="card"><div class="ctitle"><span class="l">Итого по всем каналам · ${MN[m]} ${yr} · ${mode==='plan'?'ПЛАН':'ФАКТ'}</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.9rem">`+
+    tg('Всего лидов',Math.round(sum.leads),'b')+tg('Всего покупок',Math.round(sum.orders),'t')+tg('Выручка',fUsd(sum.rev),'g')+
+    tg('Маржа ср.',(sum.rev>0?Math.round(sum.marginAmt/sum.rev*100):0)+'%','p')+tg('Расходы',fUsd(sum.costs),'r')+tg('Чистая прибыль',fUsd(sum.profit),sum.profit>=0?'g':'r')+
+    `</div></div>`;
+  ['etsy','ecom'].forEach(dir=>{
+    h+=`<div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin:.4rem 0 .6rem">${dir==='etsy'?'Etsy — направления':'E-com — каналы'}</div>`;
+    const sub={orders:0,rev:0,costs:0,profit:0};
+    YP_CH.filter(c=>c.dir===dir).forEach(ch=>{const c=ypCalc(ch,yr,m,mode);sub.orders+=c.orders;sub.rev+=c.rev;sub.costs+=c.costs;sub.profit+=c.profit;h+=ypCard(ch,yr,m,mode,c);});
+    h+=`<div class="card ${dir==='etsy'?'cb':'ct'}" style="display:flex;gap:1.6rem;flex-wrap:wrap;align-items:center;padding:.85rem 1.2rem"><b style="font-size:11px;text-transform:uppercase;color:var(--text2)">Итого ${dir==='etsy'?'Etsy':'E-com'}</b><span class="muted">Покупок: <b>${Math.round(sub.orders)}</b></span><span class="muted">Выручка: <b>${fUsd(sub.rev)}</b></span><span class="muted">Расходы: <b>${fUsd(sub.costs)}</b></span><span class="muted">Чистая прибыль: <b class="${sub.profit>=0?'posv':'negv'}">${fUsd(sub.profit)}</b></span></div>`;
+  });
+  document.getElementById('yp-body').innerHTML=h;
+  document.querySelectorAll('#yp-body input[data-p]').forEach(inp=>inp.onchange=()=>{const o=yp2(yr,inp.dataset.ch);o[mode][inp.dataset.p][m]=+inp.value||0;autoSave();rYearplan();});
+  document.querySelectorAll('#yp-body input[data-fx]').forEach(inp=>inp.onchange=()=>{const o=yp2(yr,inp.dataset.ch);o[inp.dataset.fx]=+inp.value||0;autoSave();rYearplan();});
+}
+function ypCard(ch,yr,m,mode,c){
+  const o=yp2(yr,ch.id),p=o[mode];
+  const inp=(fld,val,ph)=>`<div class="fg"><label class="lbl">${ph}</label><input data-ch="${ch.id}" data-p="${fld}" value="${val||''}" inputmode="decimal"></div>`;
+  const fxi=(fld,val,ph)=>`<div class="fg"><label class="lbl">${ph}</label><input data-ch="${ch.id}" data-fx="${fld}" value="${val||''}" inputmode="decimal"></div>`;
+  let params=ch.type==='etsy2'
+    ? inp('leads',p.leads[m],'Лиды')+inp('c1',p.c1[m],'Конв.самост,%')+inp('c2',p.c2[m],'Конв.продаж,%')+inp('check',p.check[m],'Чек,$')+inp('adv',p.adv[m],'Реклама,$')
+    : inp('leads',p.leads[m],'Лиды')+inp('conv',p.conv[m],'Конверсия,%')+inp('check',p.check[m],'Чек,$')+inp('adv',p.adv[m],'Реклама,$');
+  params+=fxi('margin',o.margin,'Маржа,%')+fxi('fot',o.fot,'ФОТ,$')+fxi('ovhd',o.ovhd,'Общепр.,$');
+  let res=ch.type==='etsy2'?`<div class="mini">Самост. покупок<b>${c.self}</b></div><div class="mini">После продаж<b>${c.after}</b></div>`:'';
+  res+=`<div class="mini">Всего покупок<b>${c.orders}</b></div><div class="mini">Выручка<b>${fUsd(c.rev)}</b></div><div class="mini">Маржа $<b>${fUsd(c.marginAmt)}</b></div><div class="mini">Расходы<b>${fUsd(c.costs)}</b></div><div class="mini">Чистая прибыль<b class="${c.profit>=0?'posv':'negv'}">${fUsd(c.profit)}</b></div>`;
+  return `<div class="card ${ch.cls}"><div class="ctitle"><span class="l">${ch.name}</span><span class="kpct ${c.profit>=0?'pos':'neg'}">${fUsd(c.profit)}</span></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px">${params}</div><div class="ypres">${res}</div></div>`;
 }
 
 /* ═══ ANALYTICS ═══ */
@@ -674,12 +685,12 @@ async function loadSeed(){try{const r=await fetch('seed-data.json?cb='+Date.now(
 function mergeSeed(cur,s){const d=cur||defData();d.directions=s.directions||d.directions;d.pnl=s.pnl||d.pnl;d.cf=s.cf||d.cf;d.employees=(s.employees||[]).map((e,i)=>Object.assign({id:'e'+i,allocHist:{}},e));if(s.meta)d.meta=Object.assign(d.meta||{},s.meta);return d;}
 
 /* ═══ MERGE ═══ */
-function mergeDefaults(d){const def=defData();if(!d||typeof d!=='object')return def;for(const k in def)if(d[k]===undefined)d[k]=def[k];if(!d.meta)d.meta=def.meta;if(!Array.isArray(d.directions)||!d.directions.length)d.directions=def.directions;['pnl','cf'].forEach(k=>{if(!d[k])d[k]={};['cons','etsy','ecom'].forEach(id=>{if(!d[k][id])d[k][id]={rows:[],data:{}};});});if(!Array.isArray(d.employees))d.employees=[];d.employees.forEach(e=>{if(e.base===undefined)e.base=+e.salary||0;if(e.bonus===undefined)e.bonus=0;});if(!d.deptControls||Array.isArray(d.deptControls))d.deptControls={};if(!d.yearPlan)d.yearPlan={};return d;}
+function mergeDefaults(d){const def=defData();if(!d||typeof d!=='object')return def;for(const k in def)if(d[k]===undefined)d[k]=def[k];if(!d.meta)d.meta=def.meta;if(!Array.isArray(d.directions)||!d.directions.length)d.directions=def.directions;['pnl','cf'].forEach(k=>{if(!d[k])d[k]={};['cons','etsy','ecom'].forEach(id=>{if(!d[k][id])d[k][id]={rows:[],data:{}};});});if(!Array.isArray(d.employees))d.employees=[];d.employees.forEach(e=>{if(e.base===undefined)e.base=+e.salary||0;if(e.bonus===undefined)e.bonus=0;});if(!d.deptControls||Array.isArray(d.deptControls))d.deptControls={};if(!d.yearPlan)d.yearPlan={};if(!d.yp2)d.yp2={};return d;}
 
 /* ═══ AUTH ═══ */
 function showGate(){document.getElementById('auth-gate').classList.add('show');}
 function hideGate(){document.getElementById('auth-gate').classList.remove('show');}
-function bootData(){YEAR=+D.meta.curYear||CYR;const ys=gridYears(D.pnl.etsy);if(ys.length&&!ys.includes(YEAR))YEAR=ys[ys.length-1];rAll();}
+function bootData(){YEAR=+D.meta.curYear||CYR;const ys=gridYears(D.pnl.etsy);if(ys.length&&!ys.includes(YEAR))YEAR=ys[ys.length-1];if(seedYp2())persist();rAll();}
 function initAuth(){
   if(AUTH.mode!=='login'){D=mergeDefaults(JSON.parse(localStorage.getItem(LSK)||'null'));bootData();return;}
   showGate();const err=document.getElementById('auth-err');
