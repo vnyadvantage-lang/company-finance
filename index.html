@@ -1157,7 +1157,10 @@ function mergeDefaults(d){const def=defData();if(!d||typeof d!=='object')return 
 /* ═══ AUTH ═══ */
 function showGate(){document.getElementById('auth-gate').classList.add('show');}
 function hideGate(){document.getElementById('auth-gate').classList.remove('show');}
-function bootData(){YEAR=+D.meta.curYear||CYR;const ys=gridYears(D.pnl.etsy);if(ys.length&&!ys.includes(YEAR))YEAR=ys[ys.length-1];if(seedYp2())persist();rAll();}
+function bootData(){YEAR=+D.meta.curYear||CYR;const ys=gridYears(D.pnl.etsy);if(ys.length&&!ys.includes(YEAR))YEAR=ys[ys.length-1];if(seedYp2())persist();rAll();autoLoadPrices();}
+// если цен в данных нет (напр. ещё не импортировали в облако) — тихо подтянуть из локального prices-data.json
+// на GitHub файла нет (конфиденц.) → fetch 404 → тихо пропускаем; на локальной версии загрузит и сохранит в облако
+function autoLoadPrices(){if(D.prices&&D.prices.pch&&(D.prices.pch.rows||[]).length)return;fetch('prices-data.json?cb='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(np=>{if(np&&np.pch&&(np.pch.rows||[]).length){D.prices=np;persist();rPrices();toast('Цены подгружены из локального файла ✓');}}).catch(()=>{});}
 function initAuth(){
   if(AUTH.mode!=='login'){D=mergeDefaults(JSON.parse(localStorage.getItem(LSK)||'null'));bootData();return;}
   showGate();const err=document.getElementById('auth-err');
