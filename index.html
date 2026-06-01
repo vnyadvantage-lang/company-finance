@@ -434,21 +434,38 @@ function rAlloc(){
 }
 function addEmp(){D.employees.push({id:'e'+Date.now(),name:'',dept:'—',base:0,bonus:0,salary:0,etsyPct:100,ecomPct:0,note:'',salHist:{},allocHist:{}});autoSave();rPage(curPage);}
 function delEmp(id){if(!confirm('Удалить сотрудника?'))return;D.employees=D.employees.filter(e=>e.id!==id);autoSave();rPage(curPage);}
+function empTotal(e){return (+e.base||0)+(+e.bonus||0);}
+function isUrl(s){return /^https?:\/\//i.test((s||'').trim());}
 function rStaff(){
-  const deps=[...new Set(D.employees.map(e=>e.dept||'—'))];
-  let h=`<div class="tw"><table class="tbl" style="min-width:860px"><thead><tr><th>Имя</th><th>Отдел</th><th>Ставка, $</th><th>Бонус, $</th><th>Итого, $</th><th>Etsy %</th><th>E-Com %</th><th>Условия</th><th></th></tr></thead><tbody>`;
+  const deps=[];D.employees.forEach(e=>{const d=e.dept||'—';if(!deps.includes(d))deps.push(d);});
+  const byDept={};D.employees.forEach(e=>{(byDept[e.dept||'—']=byDept[e.dept||'—']||[]).push(e);});
+  const compTotal=D.employees.reduce((a,e)=>a+empTotal(e),0)||1;
+  let h=`<div class="tw"><table class="tbl" style="min-width:900px"><thead><tr><th>Имя</th><th>Отдел</th><th>Ставка, $</th><th>Бонус, $</th><th>Итого, $</th><th>Etsy %</th><th>E-Com %</th><th>Условия (ссылка)</th><th></th></tr></thead><tbody>`;
   if(!D.employees.length)h+=`<tr><td colspan="9" style="text-align:center;color:var(--text3)">Добавьте сотрудника →</td></tr>`;
-  D.employees.forEach(e=>{const tot=(+e.base||0)+(+e.bonus||0);
-    h+=`<tr><td><input data-s="${e.id}" data-f="name" value="${(e.name||'').replace(/"/g,'&quot;')}" style="text-align:left;font-family:inherit"></td>`+
-      `<td><input data-s="${e.id}" data-f="dept" value="${(e.dept||'').replace(/"/g,'&quot;')}" list="deptlist" style="text-align:left;font-family:inherit"></td>`+
-      `<td><input data-s="${e.id}" data-f="base" value="${e.base?Math.round(e.base):''}" inputmode="decimal"></td>`+
-      `<td><input data-s="${e.id}" data-f="bonus" value="${e.bonus?Math.round(e.bonus):''}" inputmode="decimal"></td>`+
-      `<td><b>${fUsd(tot)}</b></td>`+
-      `<td><input data-s="${e.id}" data-f="etsyPct" value="${e.etsyPct||''}" inputmode="decimal"></td>`+
-      `<td><input data-s="${e.id}" data-f="ecomPct" value="${e.ecomPct||''}" inputmode="decimal"></td>`+
-      `<td><input data-s="${e.id}" data-f="note" value="${(e.note||'').replace(/"/g,'&quot;')}" style="text-align:left;font-family:inherit"></td>`+
-      `<td><button class="btn btn-r btn-sm" onclick="delEmp('${e.id}')">✕</button></td></tr>`;});
+  deps.forEach(dep=>{
+    const list=byDept[dep];const base=list.reduce((a,e)=>a+(+e.base||0),0),bonus=list.reduce((a,e)=>a+(+e.bonus||0),0),tot=base+bonus;
+    h+=`<tr class="deprow"><td colspan="2">${dep} · ${list.length} чел.</td><td>${fUsd(base)}</td><td>${fUsd(bonus)}</td><td>${fUsd(tot)}</td><td colspan="4">${Math.round(tot/compTotal*100)}% от ФОТ компании</td></tr>`;
+    list.forEach(e=>{const t=empTotal(e);const note=(e.note||'');
+      h+=`<tr><td><input data-s="${e.id}" data-f="name" value="${(e.name||'').replace(/"/g,'&quot;')}" style="text-align:left;font-family:inherit"></td>`+
+        `<td><input data-s="${e.id}" data-f="dept" value="${(e.dept||'').replace(/"/g,'&quot;')}" list="deptlist" style="text-align:left;font-family:inherit"></td>`+
+        `<td><input data-s="${e.id}" data-f="base" value="${e.base?Math.round(e.base):''}" inputmode="decimal"></td>`+
+        `<td><input data-s="${e.id}" data-f="bonus" value="${e.bonus?Math.round(e.bonus):''}" inputmode="decimal"></td>`+
+        `<td><b>${fUsd(t)}</b></td>`+
+        `<td><input data-s="${e.id}" data-f="etsyPct" value="${e.etsyPct||''}" inputmode="decimal"></td>`+
+        `<td><input data-s="${e.id}" data-f="ecomPct" value="${e.ecomPct||''}" inputmode="decimal"></td>`+
+        `<td><div style="display:flex;gap:4px;align-items:center"><input data-s="${e.id}" data-f="note" value="${note.replace(/"/g,'&quot;')}" placeholder="https://…" style="text-align:left;font-family:inherit">${isUrl(note)?`<a href="${note.replace(/"/g,'&quot;')}" target="_blank" rel="noopener" title="Открыть" style="text-decoration:none;flex-shrink:0">↗</a>`:''}</div></td>`+
+        `<td><button class="btn btn-r btn-sm" onclick="delEmp('${e.id}')">✕</button></td></tr>`;});
+  });
+  const cBase=D.employees.reduce((a,e)=>a+(+e.base||0),0),cBonus=D.employees.reduce((a,e)=>a+(+e.bonus||0),0);
+  h+=`<tr class="bold"><td colspan="2">ВСЯ КОМПАНИЯ · ${D.employees.length} чел.</td><td>${fUsd(cBase)}</td><td>${fUsd(cBonus)}</td><td>${fUsd(cBase+cBonus)}</td><td colspan="4">100%</td></tr>`;
   h+=`</tbody></table></div><datalist id="deptlist">${deps.map(d=>`<option value="${d}">`).join('')}</datalist>`;
+  // сводка по направлениям
+  let etsyPay=0,ecomPay=0;D.employees.forEach(e=>{const t=empTotal(e);etsyPay+=t*((+e.etsyPct||0)/100);ecomPay+=t*((+e.ecomPct||0)/100);});
+  h+=`<div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem">
+    <div class="kpi" style="flex:1;min-width:180px"><div class="kpi-l"><span class="kl">ФОТ → ${dirName('etsy')}</span><span class="kv b">${fUsd(etsyPay)}</span></div><div class="ks">${compTotal>0?Math.round(etsyPay/compTotal*100):0}%</div></div>
+    <div class="kpi" style="flex:1;min-width:180px"><div class="kpi-l"><span class="kl">ФОТ → ${dirName('ecom')}</span><span class="kv p">${fUsd(ecomPay)}</span></div><div class="ks">${compTotal>0?Math.round(ecomPay/compTotal*100):0}%</div></div>
+    <div class="kpi" style="flex:1;min-width:180px"><div class="kpi-l"><span class="kl">ФОТ всего (ставка+бонус)</span><span class="kv">${fUsd(cBase+cBonus)}</span></div><div class="ks">${D.employees.length} чел.</div></div>
+  </div>`;
   document.getElementById('staff-table').innerHTML=h;
   document.querySelectorAll('#staff-table input[data-s]').forEach(inp=>inp.onchange=()=>{const e=D.employees.find(x=>x.id===inp.dataset.s);if(!e)return;const f=inp.dataset.f;
     if(['base','bonus','etsyPct','ecomPct'].includes(f)){e[f]=+inp.value||0;if(f==='base'||f==='bonus')e.salary=(+e.base||0)+(+e.bonus||0);}else e[f]=inp.value;
