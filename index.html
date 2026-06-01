@@ -296,6 +296,17 @@ function defData(){return{
 /* ═══ STATE ═══ */
 let D=null,_ch={},YEAR=CYR;
 let cfDir='cons',plDir='cons',ypDir='etsy',moMonth=CM,alMonth=CM,ypMonth=CM,ypMode='plan',anView='years',anMetric='Выручка';
+let pastUnlocked=false; // защита прошлых периодов; снимается только вручную, сбрасывается при перезагрузке
+function isPast(year){return (+year)<CYR;}
+function lockActive(year){return isPast(year)&&!pastUnlocked;}
+function lockBar(year){
+  if(!isPast(year))return '';
+  if(pastUnlocked)return `<div class="okbox" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:1rem"><span>🔓 Прошлый период <b>${year}</b> разблокирован — правки изменят накопленную статистику. Будь осторожен.</span><button class="btn btn-gh btn-sm" onclick="relockPast()">🔒 Включить защиту</button></div>`;
+  return `<div class="warn" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:1rem"><span>🔒 <b>${year}</b> — прошлый период. Редактирование защищено, чтобы не сломать статистику. Менять можно только текущий год (${CYR}).</span><button class="btn btn-gh btn-sm" onclick="unlockPast(${year})">🔓 Разблокировать ${year}</button></div>`;
+}
+function unlockPast(year){if(confirm('Снять защиту с прошлого периода '+(year||'')+'?\n\nИзменения в прошлых годах исказят накопленную статистику, и восстановить её потом сложно. Продолжить?')){pastUnlocked=true;rPage(curPage);toast('⚠️ Защита снята (до перезагрузки страницы)','err');}}
+function relockPast(){pastUnlocked=false;rPage(curPage);toast('🔒 Защита прошлых периодов включена');}
+function disableIfLocked(rootId,year){if(!lockActive(year))return;const el=document.getElementById(rootId);if(el)el.querySelectorAll('input,select,button.btn-r').forEach(i=>{i.disabled=true;i.style.opacity=.55;i.style.cursor='not-allowed';});}
 
 /* ═══ CRYPTO ═══ */
 let _dekRaw=null,_dataKey=null,_wrapPw=null,_wrapRc=null,_loginEmail='';
@@ -388,8 +399,9 @@ function renderGrid(g,year,rootId,kind,dir){
     h+=`<td><b>${r.pct?'':fUsd(sum)}</b></td></tr>`;
   });
   h+=`</tbody></table></div>`;
-  document.getElementById(rootId).innerHTML=h;
+  document.getElementById(rootId).innerHTML=lockBar(year)+h;
   document.querySelectorAll('#'+rootId+' input[data-rid]').forEach(inp=>{inp.onchange=()=>{const gg=D[inp.dataset.k][inp.dataset.dir];rowArr(gg,year,inp.dataset.rid)[+inp.dataset.m]=+inp.value||0;autoSave();upHdr();};});
+  disableIfLocked(rootId,year);
 }
 function renderConsPnl(year,rootId){
   const lines=[['Выручка',false],['Затраты',false],['ФОТ',false],['Чистая прибыль',true],['Рентабельность, %',true]];
@@ -447,9 +459,10 @@ function rAlloc(){
   });
   h+=`<tr class="bold"><td>ФОТ за ${MN[alMonth]} ${YEAR}</td><td></td><td></td><td>${fUsd(payrollTotal(YEAR,alMonth))}</td>`;
   D.directions.forEach(d=>h+=`<td>${fUsd(payroll(d.id,YEAR,alMonth))}</td>`);h+=`<td></td><td></td></tr></tbody></table></div>`;
-  document.getElementById('al-table').innerHTML=h;
+  document.getElementById('al-table').innerHTML=lockBar(YEAR)+h;
   document.querySelectorAll('#al-table input[data-f]').forEach(inp=>inp.onchange=()=>{const e=D.employees.find(x=>x.id===inp.dataset.emp);if(!e)return;const f=inp.dataset.f;if(f==='base'){e.base=+inp.value||0;const k=YEAR+'-'+alMonth;if(e.salHist)e.salHist[k]=(+e.base||0)+(+e.bonus||0);e.salary=(+e.base||0)+(+e.bonus||0);}else if(f==='bonus'){e.bonus=+inp.value||0;const k=YEAR+'-'+alMonth;if(e.salHist)e.salHist[k]=(+e.base||0)+(+e.bonus||0);e.salary=(+e.base||0)+(+e.bonus||0);}else e.name=inp.value;autoSave();rAlloc();});
   document.querySelectorAll('#al-table input[data-alloc]').forEach(inp=>inp.onchange=()=>{const e=D.employees.find(x=>x.id===inp.dataset.emp);if(!e)return;const key=YEAR+'-'+alMonth;const base=Object.assign({},allocPct(e,YEAR,alMonth));base[inp.dataset.alloc]=+inp.value||0;if(!e.allocHist)e.allocHist={};e.allocHist[key]=base;autoSave();rAlloc();});
+  disableIfLocked('al-table',YEAR);
   rAlControl();
 }
 function addEmp(){D.employees.push({id:'e'+Date.now(),name:'',dept:'—',base:0,bonus:0,salary:0,etsyPct:100,ecomPct:0,note:'',salHist:{},allocHist:{}});autoSave();rPage(curPage);}
@@ -551,9 +564,10 @@ function rYearplan(){
     YP_CH.filter(c=>c.dir===dir).forEach(ch=>{const c=ypCalc(ch,yr,m,mode);sub.orders+=c.orders;sub.rev+=c.rev;sub.costs+=c.costs;sub.profit+=c.profit;h+=ypCard(ch,yr,m,mode,c);});
     h+=`<div class="card ${dir==='etsy'?'cb':'ct'}" style="display:flex;gap:1.6rem;flex-wrap:wrap;align-items:center;padding:.85rem 1.2rem"><b style="font-size:11px;text-transform:uppercase;color:var(--text2)">Итого ${dir==='etsy'?'Etsy':'E-com'}</b><span class="muted">Покупок: <b>${Math.round(sub.orders)}</b></span><span class="muted">Выручка: <b>${fUsd(sub.rev)}</b></span><span class="muted">Расходы: <b>${fUsd(sub.costs)}</b></span><span class="muted">Чистая прибыль: <b class="${sub.profit>=0?'posv':'negv'}">${fUsd(sub.profit)}</b></span></div>`;
   });
-  document.getElementById('yp-body').innerHTML=h;
+  document.getElementById('yp-body').innerHTML=lockBar(yr)+h;
   document.querySelectorAll('#yp-body input[data-p]').forEach(inp=>inp.onchange=()=>{const o=yp2(yr,inp.dataset.ch);o[mode][inp.dataset.p][m]=+inp.value||0;autoSave();rYearplan();});
   document.querySelectorAll('#yp-body input[data-fx]').forEach(inp=>inp.onchange=()=>{const o=yp2(yr,inp.dataset.ch);o[inp.dataset.fx]=+inp.value||0;autoSave();rYearplan();});
+  disableIfLocked('yp-body',yr);
 }
 function ypCard(ch,yr,m,mode,c){
   const o=yp2(yr,ch.id),p=o[mode];
