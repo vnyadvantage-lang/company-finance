@@ -588,11 +588,9 @@ function rAnalytics(){
   h+=`<div class="tw"><table class="tbl" style="min-width:auto"><thead><tr><th>Показатель</th>${ys.map(y=>`<th${y===last?' style="color:var(--green)"':''}>${y}${agg[y].n<12?' ('+agg[y].n+' мес)':''}</th>`).join('')}<th>${prev?last+' к '+prev+'*':''}</th></tr></thead><tbody>`;
   metrics.forEach(m=>{h+=`<tr><td>${m[0]}</td>${ys.map(y=>`<td>${m[1](y)}</td>`).join('')}`;let d='';if(prev&&KEYS[m[0]]){const k=KEYS[m[0]],a=lA[k],b=pA[k];const pc=b!==0?Math.round((a-b)/Math.abs(b)*100):0;d=`<span class="${pc>=0?'posv':'negv'}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td></tr>`;});
   h+=`</tbody></table></div><p class="muted" style="margin-top:8px">Учтены только закрытые месяцы (с внесённой выручкой). <b>*</b> Колонка роста сравнивает <b>одинаковые месяцы</b> (${lastMonths.map(m=>MN[m]).join(', ')||'—'}) ${last} к ${prev||''} — корректно при неполном годе.</p></div>`;
-  h+=`<div class="g2"><div class="card cb"><div class="ctitle"><span class="l">Выручка / Чистая прибыль по годам</span></div><div class="cw" style="height:240px"><canvas id="an-ch1"></canvas></div></div>`;
-  h+=`<div class="card cp"><div class="ctitle"><span class="l">ФОТ по годам ($)</span></div><div class="cw" style="height:240px"><canvas id="an-ch2"></canvas></div></div></div>`;
+  h+=`<div class="card cb"><div class="ctitle"><span class="l">Выручка / Чистая прибыль по годам</span></div><div class="cw" style="height:360px"><canvas id="an-ch1"></canvas></div></div>`;
   document.getElementById('an-body').innerHTML=h;
   mkChart('an-ch1','bar',{labels:ys.map(String),datasets:[{label:'Выручка',data:ys.map(y=>Math.round(agg[y].rev)),backgroundColor:'#3f7ad1'},{label:'Чистая прибыль',data:ys.map(y=>Math.round(agg[y].net)),backgroundColor:'#1f9d6b'}]});
-  mkChart('an-ch2','bar',{labels:ys.map(String),datasets:[{label:'ФОТ',data:ys.map(y=>Math.round(agg[y].fot)),backgroundColor:'#6f5ae0'}]});
 }
 function rAnMonths(){
   const ys=anYears();const maxY=Math.max(...ys);const OTHER=['#94a3b8','#5b9bd5','#cf8500','#d6336c'];
@@ -613,8 +611,9 @@ function rAnMonths(){
     h+=`</tr>`;
   }
   h+=`<tr class="bold"><td>Итого (закр.)</td>`;const tot={};ys.forEach(y=>{let s=0,any=false;for(let m=0;m<12;m++){const v=val(y,m);if(v!=null){s+=v;any=true;}}tot[y]=any?s:null;h+=`<td>${tot[y]==null?'—':fUsd(tot[y])}</td>`;});
-  ys.slice(1).forEach((y,i)=>{const a=tot[y],b=tot[ys[i]];let d='—';if(a!=null&&b){const pc=Math.round((a-b)/Math.abs(b)*100);const good=lowerBetter?pc<=0:pc>=0;d=`<span class="${good?'posv':'negv'}">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td>`;});
-  h+=`</tr></tbody></table></div><p class="muted" style="margin-top:8px">🟩 Зелёным — месяцы, где «${anMetric.toLowerCase()}» лучше того же месяца прошлого года${lowerBetter?' (для затрат/ФОТ «лучше» = меньше)':''}. Текущий год — <b>${maxY}</b>. Рост считается месяц-к-месяцу (учитывает сезонность). Прочерк — месяц не закрыт.</p></div>`;
+  // рост в «Итого» — ТОЛЬКО за одинаковые месяцы (динамика по текущий месяц, без полного года против неполного)
+  ys.slice(1).forEach((y,i)=>{const prev=ys[i];let a=0,b=0,any=false;for(let m=0;m<12;m++){const av=val(y,m);if(av!=null){const bv=val(prev,m);if(bv!=null){a+=av;b+=bv;any=true;}}}let d='—';if(any&&b!==0){const pc=Math.round((a-b)/Math.abs(b)*100);const good=lowerBetter?pc<=0:pc>=0;d=`<span class="${good?'posv':'negv'}" title="за одинаковые месяцы">${pc>=0?'+':''}${pc}%</span>`;}h+=`<td>${d}</td>`;});
+  h+=`</tr></tbody></table></div><p class="muted" style="margin-top:8px">🟩 Зелёным — месяцы, где «${anMetric.toLowerCase()}» лучше того же месяца прошлого года${lowerBetter?' (для затрат/ФОТ «лучше» = меньше)':''}. Текущий год — <b>${maxY}</b>. Рост (в т.ч. в строке «Итого») считается <b>за одинаковые месяцы</b> — динамика по текущий месяц, полный год с неполным не сравниваем. Прочерк — месяц не закрыт.</p></div>`;
   // ── ГРАФИКИ НА ВСЮ ШИРИНУ, ОДИН ПОД ДРУГИМ ──
   h+=`<div class="card cb"><div class="ctitle"><span class="l">${anMetric}: сравнение каждого месяца по годам (текущий год — зелёный)</span></div><div class="cw" style="height:360px"><canvas id="an-mbar"></canvas></div></div>`;
   h+=`<div class="card cp"><div class="ctitle"><span class="l">${anMetric}: тренд по месяцам (сезонность, годы наложены)</span></div><div class="cw" style="height:320px"><canvas id="an-mline"></canvas></div></div>`;
