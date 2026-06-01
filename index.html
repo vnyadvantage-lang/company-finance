@@ -561,8 +561,9 @@ function rYpWeeks(o){
 function yearAgg(year){let rev=0,cost=0,net=0,fot=0,n=0;for(let m=0;m<12;m++){if(!monthClosed(year,m))continue;n++;rev+=consVal(year,m,'Выручка');cost+=Math.abs(consVal(year,m,'Затраты'));net+=consVal(year,m,'Чистая прибыль');fot+=Math.abs(consVal(year,m,'ФОТ'));}return{rev,cost,net,fot,n};}
 function anYears(){const ys=gridYears(D.pnl.cons);return ys.length?ys:[CYR];}
 function rAnalytics(){
-  rSeg('an-seg',anView,v=>{anView=v;rAnalytics();},[['years','Сравнение лет'],['months','Помесячно (по годам)']]);
+  rSeg('an-seg',anView,v=>{anView=v;rAnalytics();},[['years','Сравнение лет'],['months','Помесячно (по годам)'],['ecom','Инвестпроект E-Com']]);
   if(anView==='months')return rAnMonths();
+  if(anView==='ecom')return rAnEcom();
   const ys=anYears();const agg={};ys.forEach(y=>agg[y]=yearAgg(y));
   const pct=(a,b)=>b>0?Math.round(a/b*100)+'%':'—';
   const KEYS={'Выручка':'rev','Затраты':'cost','ФОТ ($)':'fot','Чистая прибыль':'net'};
@@ -612,6 +613,46 @@ function rAnMonths(){
   mkChart('an-mbar','bar',{labels:MN,datasets:barDs});
   const lineDs=ys.map((y,i)=>({label:String(y),data:Array.from({length:12},(_,m)=>val(y,m)),borderColor:col(y,i),backgroundColor:col(y,i),borderWidth:y===maxY?3:1.5,tension:.3,spanGaps:false}));
   mkChart('an-mline','line',{labels:MN,datasets:lineDs});
+}
+
+/* ═══ ANALYTICS · ИНВЕСТПРОЕКТ E-COM ═══ */
+function ecomMonth(y,m){const r=pnlVal('ecom',y,m,'Выручка'),c=pnlVal('ecom',y,m,'Затраты'),n=pnlVal('ecom',y,m,'Чистая прибыль');return{rev:r,cost:Math.abs(c),net:n,has:(r!==0||c!==0||n!==0)};}
+function rAnEcom(){
+  // старт = первый месяц Артёма (руководителя E-Com); не раньше первого месяца с данными E-Com
+  let artem=D.employees.find(e=>/артем|артём|гладун/i.test(e.name||''));
+  let startAbs=null;
+  if(artem&&artem.salHist)for(const k in artem.salHist){const[y,m]=k.split('-').map(Number);const a=y*12+m;if(startAbs==null||a<startAbs)startAbs=a;}
+  let firstData=null,lastData=null;
+  for(let t=2024*12;t<=CYR*12+11;t++){const y=Math.floor(t/12),m=t%12;if(ecomMonth(y,m).has){if(firstData==null)firstData=t;lastData=t;}}
+  if(startAbs==null)startAbs=firstData;
+  if(firstData!=null&&startAbs!=null&&startAbs<firstData)startAbs=firstData;
+  const body=document.getElementById('an-body');
+  if(startAbs==null||lastData==null){body.innerHTML='<div class="card"><p class="muted">Нет данных по E-Com для инвест-анализа.</p></div>';return;}
+  const endAbs=lastData;
+  let rows=[],cumNet=0,cumRev=0,cumCost=0,best=null,worst=null;
+  for(let t=startAbs;t<=endAbs;t++){const y=Math.floor(t/12),m=t%12;const d=ecomMonth(y,m);cumNet+=d.net;cumRev+=d.rev;cumCost+=d.cost;rows.push({y,m,...d,cumNet});if(best==null||d.net>best.net)best={y,m,net:d.net};if(worst==null||d.net<worst.net)worst={y,m,net:d.net};}
+  const months=rows.length,sy=Math.floor(startAbs/12),sm=startAbs%12;
+  const dur=(months>=12?Math.floor(months/12)+' г '+(months%12)+' мес':months+' мес');
+  const lastNet=rows[rows.length-1].net;
+  let h=`<div class="g4">`+
+    tile('Длительность',dur,'b')+
+    tile('Накоплено (итог)',fUsd(cumNet),cumNet>=0?'g':'r')+
+    tile('Накопл. выручка',fUsd(cumRev),'t')+
+    tile('Накопл. расходы',fUsd(cumCost),'r')+`</div>`;
+  h+=`<div class="card"><p class="muted" style="margin:0">📈 Инвестпроект <b>E-Com</b> под руководством Артёма. Старт: <b>${MN[sm]} ${sy}</b> · длительность <b>${dur}</b> (${months} мес). «Накоплено (итог)» — суммарная чистая прибыль за период: <b class="${cumNet>=0?'posv':'negv'}">${fUsd(cumNet)}</b> ${cumNet<0?'(пока вложения не окупились — это накопленный минус)':'(проект вышел в плюс)'}. Текущий месяц: ${fUsd(lastNet)}. Лучший: ${MN[best.m]} ${best.y} (${fUsd(best.net)}), худший: ${MN[worst.m]} ${worst.y} (${fUsd(worst.net)}).</p></div>`;
+  h+=`<div class="card cr"><div class="ctitle"><span class="l"><span class="dot r"></span>Накопительный итог (сколько вложено нарастающим)</span></div><div class="cw" style="height:320px"><canvas id="an-ec-cum"></canvas></div></div>`;
+  h+=`<div class="card cb"><div class="ctitle"><span class="l"><span class="dot b"></span>Чистая прибыль E-Com по месяцам</span></div><div class="cw" style="height:300px"><canvas id="an-ec-net"></canvas></div></div>`;
+  h+=`<div class="card"><div class="ctitle"><span class="l">Помесячно: выручка · расходы · чистая · накопительно</span></div><div class="tw"><table class="tbl"><thead><tr><th>Месяц</th><th>Выручка</th><th>Расходы</th><th>Чистая</th><th>Накопительно</th></tr></thead><tbody>`;
+  let curYr=null;
+  rows.forEach(r=>{
+    if(curYr!==r.y){curYr=r.y;h+=`<tr class="bold"><td>${r.y}</td><td></td><td></td><td></td><td></td></tr>`;}
+    h+=`<tr><td>${MN[r.m]} ${String(r.y).slice(2)}</td><td>${fUsd(r.rev)}</td><td>${fUsd(r.cost)}</td><td class="${r.net>=0?'posv':'negv'}">${fUsd(r.net)}</td><td class="${r.cumNet>=0?'posv':'negv'}">${fUsd(r.cumNet)}</td></tr>`;
+  });
+  h+=`</tbody></table></div></div>`;
+  body.innerHTML=h;
+  const labels=rows.map(r=>MN[r.m]+' '+String(r.y).slice(2));
+  mkChart('an-ec-cum','line',{labels,datasets:[{label:'Накоплено',data:rows.map(r=>Math.round(r.cumNet)),borderColor:'#e0603a',backgroundColor:'rgba(224,96,58,.12)',fill:true,tension:.25}]});
+  mkChart('an-ec-net','bar',{labels,datasets:[{label:'Чистая прибыль/мес',data:rows.map(r=>Math.round(r.net)),backgroundColor:rows.map(r=>r.net>=0?'#1f9d6b':'#e0603a'),borderRadius:3}]});
 }
 
 /* ═══ SETTINGS ═══ */
